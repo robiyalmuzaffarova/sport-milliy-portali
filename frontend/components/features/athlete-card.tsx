@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { Star, Medal, MapPin, Trophy } from "lucide-react"
 import { PillButton } from "@/components/ios/pill-button"
@@ -20,6 +21,7 @@ interface AthleteCardProps {
 }
 
 export function AthleteCard({
+  id,
   name,
   sport,
   image,
@@ -78,11 +80,11 @@ export function AthleteCard({
           <div className="flex items-center gap-4 mt-3">
             <div className="flex items-center gap-1.5 text-white/90">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-medium">{rating.toFixed(1)}</span>
+              <span className="text-sm font-medium">{(Number(rating) || 4.5).toFixed(1)}</span>
             </div>
             <div className="flex items-center gap-1.5 text-white/90">
               <Medal className="w-4 h-4" />
-              <span className="text-sm font-medium">{achievements}</span>
+              <span className="text-sm font-medium">{Number(achievements) || 0}</span>
             </div>
             <div className="flex items-center gap-1.5 text-white/90">
               <MapPin className="w-4 h-4" />
@@ -94,9 +96,11 @@ export function AthleteCard({
 
       {/* Action */}
       <div className="p-4">
-        <PillButton variant="filled" className="w-full bg-primary hover:bg-primary/90">
-          Profilni ko'rish
-        </PillButton>
+        <Link href={`/athlete/${id}`}>
+          <PillButton variant="filled" className="w-full bg-primary hover:bg-primary/90">
+            Profilni ko'rish
+          </PillButton>
+        </Link>
       </div>
     </motion.div>
   )

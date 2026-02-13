@@ -27,6 +27,7 @@ from app.core.security import verify_password
 from app.api.v1.router import api_router
 from app.db.session import engine, get_db
 from app.models.user import User, UserRole
+from starlette.staticfiles import StaticFiles
 
 # Admin panel imports
 from sqladmin import Admin
@@ -60,6 +61,13 @@ app = FastAPI(
     redoc_url=None,  # Disable default redoc
     openapi_url=None,  # Disable default openapi.json
 )
+
+# Serve uploaded files from settings.UPLOAD_DIR at /uploads
+try:
+    app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+except Exception:
+    # ignore if mount fails (e.g., directory missing at runtime)
+    pass
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
@@ -97,7 +105,6 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,

@@ -17,6 +17,19 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ id, title, excerpt, image, date, category, className }: NewsCardProps) {
+  // Normalize image source: if the stored `image` is not an absolute URL,
+  // try to resolve it against the backend uploads path so both full URLs
+  // and stored filenames/slugs work.
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+  const API_BASE = API_URL.replace(/\/api\/v1\/?$/i, '')
+
+  let src = image || '/placeholder.svg'
+  const isAbsolute = /^(https?:)?\/\//i.test(src) || src.startsWith('data:')
+  if (!isAbsolute) {
+    if (src.startsWith('/')) src = `${API_BASE}${src}`
+    else src = `${API_BASE}/uploads/${src}`
+  }
+
   return (
     <motion.article
       className={cn("group bg-card rounded-3xl overflow-hidden ios-card-elevated", className)}
@@ -28,7 +41,7 @@ export function NewsCard({ id, title, excerpt, image, date, category, className 
         {/* Image */}
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
-            src={image || "/placeholder.svg"}
+            src={src}
             alt={title || "Yangiliklar"}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"

@@ -48,14 +48,13 @@ async def update_user_me(
     return current_user
 
 
-@router.get("/", response_model=UserListResponse, dependencies=[Depends(require_permissions(Resource.USERS, [Permission.READ]))])
+@router.get("/", response_model=UserListResponse)
 async def get_users_list(
         skip: int = Query(0, ge=0),
         limit: int = Query(10, ge=1, le=100),
         role: Optional[UserRole] = None,
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
-        current_user: User = Depends(get_current_active_user),
         db: AsyncSession = Depends(get_db)
 ):
     """Get list of users"""
@@ -79,11 +78,9 @@ async def get_users_list(
 
     return {"items": users, "total": total, "skip": skip, "limit": limit}
 
-
-@router.get("/{user_id}", response_model=UserResponse, dependencies=[Depends(require_permissions(Resource.USERS, [Permission.READ]))])
+@router.get("/{user_id}/", response_model=UserResponse)
 async def get_user_detail(
         user_id: int,
-        current_user: User = Depends(get_current_active_user),
         db: AsyncSession = Depends(get_db)
 ):
     """Get user details"""

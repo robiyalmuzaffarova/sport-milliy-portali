@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
@@ -8,87 +8,7 @@ import { Footer } from "@/components/layout/footer"
 import { FilterPanel } from "@/components/common/filter-panel"
 import { EducationCard } from "@/components/features/education-card"
 import { FloatingElement } from "@/components/common/floating-element"
-
-const mockEducation = [
-  {
-    id: "1",
-    name: "Toshkent Sport Akademiyasi",
-    type: "academy" as const,
-    description: "O'zbekistondagi eng yirik sport ta'lim muassasasi. Professional sportchilar tayyorlash.",
-    image: "/tashkent-sports-academy-building.jpg",
-    location: "Toshkent",
-    address: "Chilonzor tumani, Bunyodkor ko'chasi, 15-uy",
-    workingHours: "08:00 - 20:00",
-    phone: "+998 71 123 45 67",
-    rating: 4.9,
-    mapsLink: "https://maps.google.com",
-  },
-  {
-    id: "2",
-    name: "O'zbekiston Kurash Federatsiyasi",
-    type: "federation" as const,
-    description: "Milliy sport turi - kurashni rivojlantirish va targ'ib qilish.",
-    image: "/uzbekistan-kurash-federation-building.jpg",
-    location: "Toshkent",
-    address: "Yunusobod tumani, Amir Temur shoh ko'chasi, 108",
-    workingHours: "09:00 - 18:00",
-    phone: "+998 71 234 56 78",
-    rating: 4.8,
-    mapsLink: "https://maps.google.com",
-  },
-  {
-    id: "3",
-    name: "Samarqand Sport Maktabi",
-    type: "academy" as const,
-    description: "Yosh sportchilarni tarbiyalash va rivojlantirish markazi.",
-    image: "/samarkand-sports-school-building.jpg",
-    location: "Samarqand",
-    address: "Samarqand shahar, Registon ko'chasi, 45",
-    workingHours: "07:00 - 21:00",
-    phone: "+998 66 123 45 67",
-    rating: 4.7,
-    mapsLink: "https://maps.google.com",
-  },
-  {
-    id: "4",
-    name: "O'zbekiston Boxing Federatsiyasi",
-    type: "federation" as const,
-    description: "Professional boks sportini rivojlantirish va xalqaro musobaqalarda ishtirok etish.",
-    image: "/uzbekistan-boxing-federation-building.jpg",
-    location: "Toshkent",
-    address: "Mirzo Ulug'bek tumani, Sport ko'chasi, 22",
-    workingHours: "09:00 - 19:00",
-    phone: "+998 71 345 67 89",
-    rating: 4.9,
-    mapsLink: "https://maps.google.com",
-  },
-  {
-    id: "5",
-    name: "Farg'ona Olimpiya Zaxiralar Maktabi",
-    type: "academy" as const,
-    description: "Kelajak Olimpiya chempionlarini tayyorlash markazi.",
-    image: "/fergana-olympic-reserve-school.jpg",
-    location: "Farg'ona",
-    address: "Farg'ona shahar, Al-Farg'oniy ko'chasi, 78",
-    workingHours: "08:00 - 19:00",
-    phone: "+998 73 244 55 66",
-    rating: 4.6,
-    mapsLink: "https://maps.google.com",
-  },
-  {
-    id: "6",
-    name: "O'zbekiston Tennis Federatsiyasi",
-    type: "federation" as const,
-    description: "Professional tennis sportini rivojlantirish va targ'ib qilish.",
-    image: "/uzbekistan-tennis-federation-building.jpg",
-    location: "Toshkent",
-    address: "Sergeli tumani, Tennis ko'chasi, 5",
-    workingHours: "08:00 - 20:00",
-    phone: "+998 71 456 78 90",
-    rating: 4.8,
-    mapsLink: "https://maps.google.com",
-  },
-]
+import { educationApi } from "@/lib/api/client"
 
 const filterGroups = [
   {
@@ -96,8 +16,10 @@ const filterGroups = [
     label: "Turi",
     type: "checkbox" as const,
     options: [
-      { value: "academy", label: "Akademiya", count: 12 },
-      { value: "federation", label: "Federatsiya", count: 8 },
+      { value: "academy", label: "Akademiya", count: 0 },
+      { value: "federation", label: "Federatsiya", count: 0 },
+      { value: "school", label: "Maktab", count: 0 },
+      { value: "club", label: "Club", count: 0 },
     ],
   },
   {
@@ -105,21 +27,14 @@ const filterGroups = [
     label: "Viloyat",
     type: "checkbox" as const,
     options: [
-      { value: "tashkent", label: "Toshkent", count: 15 },
-      { value: "samarkand", label: "Samarqand", count: 4 },
-      { value: "fergana", label: "Farg'ona", count: 3 },
-      { value: "bukhara", label: "Buxoro", count: 2 },
-    ],
-  },
-  {
-    id: "sport",
-    label: "Sport turi",
-    type: "checkbox" as const,
-    options: [
-      { value: "kurash", label: "Kurash", count: 5 },
-      { value: "boxing", label: "Boxing", count: 4 },
-      { value: "tennis", label: "Tennis", count: 3 },
-      { value: "football", label: "Football", count: 6 },
+      { value: "tashkent", label: "Toshkent", count: 0 },
+      { value: "samarkand", label: "Samarqand", count: 0 },
+      { value: "fergana", label: "Farg'ona", count: 0 },
+      { value: "bukhara", label: "Buxoro", count: 0 },
+      { value: "andijan", label: "Andijon", count: 0 },
+      { value: "namangan", label: "Namangan", count: 0 },
+      { value: "kashkadarya", label: "Qashqadarya", count: 0 },
+      { value: "khorezm", label: "Xorezm", count: 0 },
     ],
   },
 ]
@@ -127,6 +42,72 @@ const filterGroups = [
 function EducationContent() {
   const { t } = useLanguage()
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
+  const [education, setEducation] = useState<any[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Transform backend response to match EducationCard props
+  const transformEducationData = (backendData: any) => {
+    return {
+      id: backendData.id?.toString() || "",
+      name: backendData.name || "",
+      type: backendData.type || "academy",
+      description: backendData.description || "",
+      image: backendData.image_url || "/placeholder.svg",
+      location: backendData.region?.replace("_", " ").toUpperCase() || "Unknown",
+      address: backendData.address || "Not specified",
+      workingHours: backendData.working_hours || "Not available",
+      phone: backendData.phone || "Not available",
+      rating: backendData.rating || 0,
+      mapsLink: backendData.maps_link || "https://maps.google.com",
+    }
+  }
+
+  // Fetch education data from backend
+  const fetchEducationData = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // Build query parameters based on selected filters
+      const selectedType = selectedFilters.type?.[0]
+      const selectedRegion = selectedFilters.region?.[0]
+
+      // Map frontend region filter to backend region enum
+      const regionMap: Record<string, string> = {
+        "tashkent": "tashkent city",
+        "samarkand": "samarkand",
+        "fergana": "fergana",
+        "bukhara": "bukhara",
+      }
+
+      const response = await educationApi.getAll(
+        0,
+        50,
+        selectedRegion ? regionMap[selectedRegion] || selectedRegion : undefined,
+        selectedType,
+        searchQuery
+      )
+
+      if (response && response.items) {
+        const transformedData = response.items.map(transformEducationData)
+        setEducation(transformedData)
+        setTotalCount(response.total)
+      }
+    } catch (err: any) {
+      console.error("Error fetching education data:", err)
+      setError(err.message || "Failed to fetch education data")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch data when filters change
+  useEffect(() => {
+    fetchEducationData()
+  }, [selectedFilters, searchQuery])
 
   const handleFilterChange = (groupId: string, values: string[]) => {
     setSelectedFilters((prev) => ({ ...prev, [groupId]: values }))
@@ -169,22 +150,55 @@ function EducationContent() {
             {/* Education Grid */}
             <div className="flex-1">
               <div className="flex items-center justify-between mb-6">
-                <p className="text-muted-foreground">
-                  <span className="font-semibold text-foreground">{mockEducation.length}</span> muassasa topildi
-                </p>
+                {isLoading ? (
+                  <p className="text-muted-foreground">
+                    <span className="inline-block w-16 h-5 bg-muted rounded animate-pulse"></span>
+                  </p>
+                ) : error ? (
+                  <p className="text-red-500">
+                    Xatolik: {error}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">
+                    <span className="font-semibold text-foreground">{education.length}</span> muassasa topildi
+                  </p>
+                )}
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                {mockEducation.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                  >
-                    <EducationCard {...item} />
-                  </motion.div>
-                ))}
+                {isLoading ? (
+                  // Loading skeleton
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="group bg-card rounded-3xl overflow-hidden h-96 animate-pulse"
+                    >
+                      <div className="w-full h-1/2 bg-muted"></div>
+                      <div className="p-5 space-y-4">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-full"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))
+                ) : education.length > 0 ? (
+                  education.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: index * 0.05 }}
+                    >
+                      <EducationCard {...item} />
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-12">
+                    <p className="text-muted-foreground text-lg">
+                      Hech qanday muassasa topilmadi
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

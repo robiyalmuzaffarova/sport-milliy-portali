@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/footer"
 import { NewsCard } from "@/components/features/news-card"
 import { Button } from "@/components/ui/button"
 import { FloatingElement } from "@/components/common/floating-element"
+import { newsApi } from "@/lib/api/client"
 
 const newsCategories = ["Barchasi", "Yutuqlar", "Musobaqalar", "Yangiliklar", "Intervyu", "Sport salomatligi"]
 
@@ -16,7 +17,7 @@ const mockNews = [
     id: "1",
     title: "O'zbekiston terma jamoasi Osiyo o'yinlarida g'alaba qozondi",
     excerpt: "Bizning sportchilarimiz Osiyo o'yinlarida 15 ta oltin medal bilan tarixiy natija ko'rsatdi.",
-    image: "/uzbekistan-athletes-celebrating-victory-asian-game.jpg",
+    image: "/kurash-wrestling-championship-uzbekistan.jpg",
     date: "15 Yanvar, 2026",
     category: "Yutuqlar",
   },
@@ -40,7 +41,7 @@ const mockNews = [
     id: "4",
     title: "Boks bo'yicha yangi chempion paydo bo'ldi",
     excerpt: "Rustam Xoliqov jahon chempionatida oltin medal qo'lga kiritdi.",
-    image: "/uzbek-boxer-champion-medal-ceremony.jpg",
+    image: "/kurash-wrestling-training-gym.jpg",
     date: "8 Yanvar, 2026",
     category: "Yutuqlar",
   },
@@ -48,7 +49,7 @@ const mockNews = [
     id: "5",
     title: "Sport va sog'lom turmush tarzi",
     excerpt: "Mutaxassislar sport bilan shug'ullanishning foydali tomonlarini tushuntiradi.",
-    image: "/sports-healthy-lifestyle-uzbekistan.jpg",
+    image: "/basketball.jpg",
     date: "5 Yanvar, 2026",
     category: "Sport salomatligi",
   },
@@ -56,7 +57,7 @@ const mockNews = [
     id: "6",
     title: "Tennis bo'yicha yangi iste'dod",
     excerpt: "16 yoshli Dilnoza xalqaro turnirda g'olib chiqdi.",
-    image: "/young-tennis-talent-uzbekistan.jpg",
+    image: "/athlete-face-2.jpg",
     date: "3 Yanvar, 2026",
     category: "Yutuqlar",
   },
@@ -64,7 +65,7 @@ const mockNews = [
     id: "7",
     title: "Futbol ligasi yangi mavsumga tayyorlanmoqda",
     excerpt: "O'zbekiston futbol ligasi yangi mavsumga start beradi.",
-    image: "/uzbekistan-football-league-new-season.jpg",
+    image: "/basketball.jpg",
     date: "1 Yanvar, 2026",
     category: "Musobaqalar",
   },
@@ -72,7 +73,7 @@ const mockNews = [
     id: "8",
     title: "Olimpiya o'yinlariga tayyorgarlik davom etmoqda",
     excerpt: "Sportchilarimiz 2028 Los-Anjeles Olimpiadasiga tayyorlanmoqda.",
-    image: "/uzbekistan-olympic-preparation-training.jpg",
+    image: "/kurash-wrestling-training-gym.jpg",
     date: "28 Dekabr, 2025",
     category: "Yangiliklar",
   },
@@ -81,8 +82,39 @@ const mockNews = [
 function NewsContent() {
   const { t } = useLanguage()
   const [activeCategory, setActiveCategory] = useState("Barchasi")
+  const [isMounted, setIsMounted] = useState(false)
+  const [news, setNews] = useState<any[]>(mockNews)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const filteredNews = activeCategory === "Barchasi" ? mockNews : mockNews.filter((n) => n.category === activeCategory)
+  // Ensure hydration matches by setting mounted flag first
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
+
+    const fetchNews = async () => {
+      try {
+        setIsLoading(true)
+        const response = await newsApi.getAll(0, 50)
+        if (response.items && Array.isArray(response.items)) {
+          setNews(response.items)
+        } else {
+          setNews(mockNews)
+        }
+      } catch (error) {
+        console.error('Failed to fetch news:', error)
+        setNews(mockNews)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchNews()
+  }, [isMounted])
+
+  const filteredNews = activeCategory === "Barchasi" ? news : news.filter((n) => n.category === activeCategory)
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -130,23 +162,34 @@ function NewsContent() {
       {/* News Grid */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredNews.map((news, index) => (
-              <motion.div
-                key={news.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-              >
-                <NewsCard {...news} />
-              </motion.div>
-            ))}
-          </div>
-
-          {filteredNews.length === 0 && (
-            <div className="text-center py-20">
-              <p className="text-muted-foreground">Bu kategoriyada yangiliklar topilmadi</p>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-sport mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Yuklanmoqda...</p>
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredNews.map((newsItem, index) => (
+                  <motion.div
+                    key={newsItem.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.05 }}
+                  >
+                    <NewsCard {...newsItem} />
+                  </motion.div>
+                ))}
+              </div>
+
+              {filteredNews.length === 0 && (
+                <div className="text-center py-20">
+                  <p className="text-muted-foreground">Bu kategoriyada yangiliklar topilmadi</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { LayoutGrid, List, Trophy, TrendingUp } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
@@ -11,88 +11,19 @@ import { AthleteCard } from "@/components/features/athlete-card"
 import { SegmentedControl } from "@/components/ios/segmented-control"
 import { AvatarStack } from "@/components/ios/avatar-stack"
 import { PillButton } from "@/components/ios/pill-button"
+import { usersApi } from "@/lib/api/client"
 
 const mockAthletes = [
   {
     id: "1",
-    name: "Akmal Nurmatov",
-    sport: "Kurash",
-    image: "/uzbek-male-wrestler-athlete-portrait.jpg",
-    rating: 4.9,
-    achievements: 23,
-    location: "Toshkent",
-    isVerified: true,
-    isTopWeek: true,
-  },
-  {
-    id: "2",
-    name: "Dilnoza Karimova",
-    sport: "Tennis",
-    image: "/uzbek-female-tennis-player-portrait.jpg",
-    rating: 4.8,
-    achievements: 15,
-    location: "Samarqand",
-    isVerified: true,
-  },
-  {
-    id: "3",
-    name: "Rustam Xoliqov",
-    sport: "Boxing",
-    image: "/uzbek-male-boxer-athlete-portrait.jpg",
-    rating: 4.7,
-    achievements: 31,
-    location: "Fargona",
-    isVerified: true,
-  },
-  {
-    id: "4",
-    name: "Malika Azimova",
-    sport: "Gymnastics",
-    image: "/uzbek-female-gymnast-athlete-portrait.jpg",
-    rating: 4.9,
-    achievements: 28,
-    location: "Buxoro",
-    isVerified: true,
-  },
-  {
-    id: "5",
-    name: "Jamshid Raximov",
-    sport: "Football",
-    image: "/uzbek-male-football-player-portrait.jpg",
-    rating: 4.6,
-    achievements: 12,
-    location: "Andijon",
-    isVerified: true,
-  },
-  {
-    id: "6",
-    name: "Nilufar Saidova",
-    sport: "Swimming",
-    image: "/uzbek-female-swimmer-athlete-portrait.jpg",
-    rating: 4.7,
-    achievements: 18,
-    location: "Toshkent",
-    isVerified: true,
-  },
-  {
-    id: "7",
-    name: "Bobur Alimov",
-    sport: "Judo",
-    image: "/uzbek-male-judo-athlete-portrait.jpg",
-    rating: 4.8,
-    achievements: 25,
-    location: "Namangan",
-    isVerified: true,
-  },
-  {
-    id: "8",
-    name: "Sevara Jumayeva",
-    sport: "Athletics",
-    image: "/uzbek-female-track-athlete-portrait.jpg",
-    rating: 4.5,
-    achievements: 14,
-    location: "Xorazm",
+    name: "Loading...",
+    sport: "Sport",
+    image: "/placeholder.svg",
+    rating: 0,
+    achievements: 0,
+    location: "Location",
     isVerified: false,
+    isTopWeek: false,
   },
 ]
 
@@ -146,10 +77,53 @@ const topAvatars = [
 
 function AthletesContent() {
   const { t } = useLanguage()
+  const [isMounted, setIsMounted] = useState(false)
+  const [athletes, setAthletes] = useState<any[]>(mockAthletes)
+  const [isLoading, setIsLoading] = useState(false)
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState("grid")
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
+
+  // Ensure hydration matches by setting mounted flag first
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
+
+    const fetchAthletes = async () => {
+      try {
+        setIsLoading(true)
+        const response = await usersApi.getAthletes(0, 50)
+        if (response.items && Array.isArray(response.items)) {
+          // Transform API response to match AthleteCard props
+          const transformedAthletes = response.items.map((user: any) => ({
+            id: String(user.id),
+            name: user.full_name || user.name || "Unknown Athlete",
+            sport: user.sport_type || user.sport || "General",
+            image: user.avatar_url || user.image || "/placeholder.svg",
+            rating: Number(user.rating) || 4.5,
+            achievements: Number(user.achievements_count) || user.achievements || 0,
+            location: user.location || "Unknown",
+            isVerified: Boolean(user.is_verified),
+            isTopWeek: Boolean(user.is_top_week),
+          }))
+          setAthletes(transformedAthletes)
+        } else {
+          setAthletes(mockAthletes)
+        }
+      } catch (error) {
+        console.error('Failed to fetch athletes:', error)
+        setAthletes(mockAthletes)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAthletes()
+  }, [isMounted])
 
   const handleFilterChange = (groupId: string, values: string[]) => {
     setSelectedFilters((prev) => ({ ...prev, [groupId]: values }))
@@ -161,7 +135,7 @@ function AthletesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-card">
+    <div className="min-h-screen bg-card" suppressHydrationWarning>
       <Header />
 
       {/* Hero Banner - iOS Style */}
@@ -260,7 +234,7 @@ function AthletesContent() {
               {/* Controls */}
               <div className="flex items-center justify-between mb-6 ios-glass p-3 rounded-2xl">
                 <p className="text-sm text-muted-foreground px-2">
-                  <span className="font-semibold text-primary">{mockAthletes.length}</span> sportchi topildi
+                  <span className="font-semibold text-primary">{athletes.length}</span> sportchi topildi
                 </p>
 
                 <SegmentedControl
@@ -273,26 +247,37 @@ function AthletesContent() {
                 />
               </div>
 
-              {/* Grid */}
-              <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
-                {mockAthletes.map((athlete, index) => (
-                  <motion.div
-                    key={athlete.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                  >
-                    <AthleteCard {...athlete} />
-                  </motion.div>
-                ))}
-              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-sport mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Yuklanmoqda...</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Grid */}
+                  <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
+                    {athletes.map((athlete, index) => (
+                      <motion.div
+                        key={athlete.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.05 }}
+                      >
+                        <AthleteCard {...athlete} />
+                      </motion.div>
+                    ))}
+                  </div>
 
-              {/* Load More */}
-              <div className="mt-10 text-center">
-                <PillButton variant="outline" size="lg">
-                  Ko'proq ko'rsatish
-                </PillButton>
-              </div>
+                  {/* Load More */}
+                  <div className="mt-10 text-center">
+                    <PillButton variant="outline" size="lg">
+                      Ko'proq ko'rsatish
+                    </PillButton>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

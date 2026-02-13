@@ -58,7 +58,7 @@ async def get_news_list(
     }
 
 
-@router.get("/{news_id}", response_model=NewsResponse)
+@router.get("/{news_id}/", response_model=NewsResponse)
 async def get_news_detail(
         news_id: int,
         db: AsyncSession = Depends(get_db)
@@ -131,7 +131,8 @@ async def create_news(
         snippet=news_data.snippet or news_data.content[:200],
         image_url=news_data.image_url,
         category=news_data.category,
-        author_id=current_user.id
+        author_id=current_user.id,
+        author=current_user
     )
 
     db.add(new_news)
@@ -145,7 +146,7 @@ async def create_news(
 
 
 @router.put(
-    "/{news_id}",
+    "/{news_id}/",
     response_model=NewsResponse,
     dependencies=[Depends(require_permissions(Resource.NEWS, [Permission.UPDATE]))]
 )
@@ -203,7 +204,7 @@ async def update_news(
 
 
 @router.delete(
-    "/{news_id}",
+    "/{news_id}/",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(Resource.NEWS, [Permission.DELETE]))]
 )

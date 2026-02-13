@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
+import { useState, useEffect } from "react"
 import {
   Users,
   Newspaper,
@@ -29,6 +30,7 @@ import { SubscriptionCard } from "@/components/ios/subscription-card"
 import { BentoCard } from "@/components/ios/bento-card"
 import { AthleteCard } from "@/components/features/athlete-card"
 import { NewsCard } from "@/components/features/news-card"
+import { usersApi, newsApi } from "@/lib/api/client"
 
 // Mock data
 const weekAthletes = [
@@ -36,7 +38,7 @@ const weekAthletes = [
     id: "1",
     name: "Akmal Nurmatov",
     sport: "Kurash",
-    image: "/uzbek-male-wrestler-athlete-portrait.jpg",
+    image: "/kurash-wrestling-training-gym.jpg",
     rating: 4.9,
     achievements: 23,
     location: "Toshkent",
@@ -47,7 +49,7 @@ const weekAthletes = [
     id: "2",
     name: "Dilnoza Karimova",
     sport: "Tennis",
-    image: "/uzbek-female-tennis-player-portrait.jpg",
+    image: "/athlete-face-2.jpg",
     rating: 4.8,
     achievements: 15,
     location: "Samarqand",
@@ -58,7 +60,7 @@ const weekAthletes = [
     id: "3",
     name: "Rustam Xoliqov",
     sport: "Boxing",
-    image: "/uzbek-male-boxer-athlete-portrait.jpg",
+    image: "/athlete-face-3.jpg",
     rating: 4.7,
     achievements: 31,
     location: "Fargona",
@@ -69,7 +71,7 @@ const weekAthletes = [
     id: "4",
     name: "Malika Azimova",
     sport: "Gymnastics",
-    image: "/uzbek-female-gymnast-athlete-portrait.jpg",
+    image: "/athlete-avatar-.jpg",
     rating: 4.9,
     achievements: 28,
     location: "Buxoro",
@@ -83,7 +85,7 @@ const latestNews = [
     id: "1",
     title: "O'zbekiston terma jamoasi Osiyo o'yinlarida g'alaba qozondi",
     excerpt: "Bizning sportchilarimiz Osiyo o'yinlarida 15 ta oltin medal bilan tarixiy natija ko'rsatdi.",
-    image: "/uzbekistan-athletes-celebrating-victory-asian-game.jpg",
+    image: "/kurash-wrestling-championship-uzbekistan.jpg",
     date: "15 Yanvar, 2026",
     category: "Yutuqlar",
   },
@@ -115,6 +117,91 @@ const participantAvatars = [
 
 function HomeContent() {
   const { t } = useLanguage()
+  const [weekAthletes, setWeekAthletes] = useState<any[]>([
+    {
+      id: "1",
+      name: "Loading...",
+      sport: "Sport",
+      image: "/placeholder.svg",
+      rating: 4.5,
+      achievements: 0,
+      location: "Location",
+      isVerified: false,
+      isTopWeek: false,
+    },
+  ])
+  const [latestNews, setLatestNews] = useState<any[]>([
+    {
+      id: "1",
+      title: "Loading...",
+      excerpt: "Yangiliklar yuklanmoqda",
+      image: "/placeholder.svg",
+      date: new Date().toLocaleDateString("uz-UZ"),
+      category: "Yangiliklar",
+    },
+  ])
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
+
+    const fetchAthletes = async () => {
+      try {
+        const response = await usersApi.getAthletes(0, 4)
+        const transformed = response.items.map((user: any) => ({
+          id: String(user.id),
+          name: user.full_name || user.name || "Unknown Athlete",
+          sport: user.sport_type || user.sport || "General",
+          image: user.avatar_url || user.image || "/placeholder.svg",
+          rating: Number(user.rating) || 4.5,
+          achievements: Number(user.achievements_count) || user.achievements || 0,
+          location: user.location || "Unknown",
+          isVerified: Boolean(user.is_verified),
+          isTopWeek: Boolean(user.is_top_week),
+        }))
+        setWeekAthletes(transformed.length > 0 ? transformed : [])
+      } catch (error) {
+        console.error("Failed to fetch athletes:", error)
+        // Keep the placeholder on error
+      }
+    }
+
+    fetchAthletes()
+  }, [isMounted])
+
+  useEffect(() => {
+    if (!isMounted) return
+
+    const fetchNews = async () => {
+      try {
+        const response = await newsApi.getAll(0, 3)
+        const transformed = response.items.map((news: any) => ({
+          id: String(news.id),
+          title: news.title || "News Title",
+          excerpt: news.description || news.content || "No description",
+          image: news.image_url || news.image || "/placeholder.svg",
+          date: news.created_at
+            ? new Date(news.created_at).toLocaleDateString("uz-UZ", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            : new Date().toLocaleDateString("uz-UZ"),
+          category: news.category || "Yangiliklar",
+        }))
+        setLatestNews(transformed.length > 0 ? transformed : [])
+      } catch (error) {
+        console.error("Failed to fetch news:", error)
+        // Keep the placeholder on error
+      }
+    }
+
+    fetchNews()
+  }, [isMounted])
 
   return (
     <div className="min-h-screen bg-card">

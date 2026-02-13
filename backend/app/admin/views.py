@@ -171,6 +171,7 @@ class JobVacancyAdmin(BaseAdminView, model=JobVacancy):
         JobVacancy.id,
         JobVacancy.title,
         JobVacancy.company,
+        JobVacancy.image_url,
         JobVacancy.location,
         JobVacancy.is_active,
         JobVacancy.created_at
@@ -185,6 +186,7 @@ class JobVacancyAdmin(BaseAdminView, model=JobVacancy):
         JobVacancy.title,
         JobVacancy.description,
         JobVacancy.company,
+        JobVacancy.image_url,
         JobVacancy.location,
         JobVacancy.salary_range,
         JobVacancy.contact,
@@ -193,6 +195,7 @@ class JobVacancyAdmin(BaseAdminView, model=JobVacancy):
 
     column_formatters = {
         JobVacancy.description: lambda m, a: m.description[:100] + "..." if len(m.description) > 100 else m.description,
+        JobVacancy.image_url: lambda m, a: (m.image_url[:40] + "...") if m.image_url and len(m.image_url) > 40 else (m.image_url or "No image"),
     }
 
     page_size = 20

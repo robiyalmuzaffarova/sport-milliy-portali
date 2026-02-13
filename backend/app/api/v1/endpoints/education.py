@@ -5,7 +5,7 @@ from typing import Optional
 
 from app.db.session import get_db
 from app.models.user import User
-from app.models.education import Education, Region
+from app.models.education import Education, Region, EducationType
 from app.schemas.education import (
     EducationCreate,
     EducationUpdate,
@@ -27,6 +27,7 @@ async def get_education_list(
         skip: int = Query(0, ge=0),
         limit: int = Query(10, ge=1, le=100),
         region: Optional[Region] = None,
+        type: Optional[EducationType] = None,
         search: Optional[str] = None,
         db: AsyncSession = Depends(get_db)
 ):
@@ -36,6 +37,7 @@ async def get_education_list(
     - **skip**: Number of records to skip (pagination)
     - **limit**: Maximum number of records to return
     - **region**: Filter by region
+    - **type**: Filter by institution type (academy, federation, school, club)
     - **search**: Search in name and description
     """
     query = select(Education)
@@ -43,6 +45,9 @@ async def get_education_list(
     # Apply filters
     if region:
         query = query.where(Education.region == region)
+    
+    if type:
+        query = query.where(Education.type == type)
 
     if search:
         query = query.where(

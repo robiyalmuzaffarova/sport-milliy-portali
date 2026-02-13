@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-from app.models.education import Region
+from app.models.education import Region, EducationType
 
 
 class EducationBase(BaseModel):
@@ -9,9 +9,13 @@ class EducationBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     region: Region
+    type: Optional[EducationType] = None
     address: Optional[str] = Field(None, max_length=500)
     working_hours: Optional[str] = Field(None, max_length=100)
     image_url: Optional[str] = Field(None, max_length=500)
+    phone: Optional[str] = Field(None, max_length=20)
+    rating: Optional[float] = Field(None, ge=0.0, le=5.0)
+    maps_link: Optional[str] = Field(None, max_length=500)
 
 
 class EducationCreate(EducationBase):
@@ -24,9 +28,13 @@ class EducationUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     region: Optional[Region] = None
+    type: Optional[EducationType] = None
     address: Optional[str] = Field(None, max_length=500)
     working_hours: Optional[str] = Field(None, max_length=100)
     image_url: Optional[str] = Field(None, max_length=500)
+    phone: Optional[str] = Field(None, max_length=20)
+    rating: Optional[float] = Field(None, ge=0.0, le=5.0)
+    maps_link: Optional[str] = Field(None, max_length=500)
 
 
 class EducationResponse(EducationBase):

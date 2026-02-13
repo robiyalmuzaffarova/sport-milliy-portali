@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # CORS
-    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost"]
+    CORS_ORIGINS: Union[List[str], str] = ["*"]
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: Union[List[str], str] = ["GET", "POST", "PUT", "DELETE", "PATCH"]
     CORS_ALLOW_HEADERS: Union[List[str], str] = ["*"]

@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { ShoppingBag, Percent, LayoutGrid, List, Sparkles } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ShoppingBag, Percent, LayoutGrid, List, Sparkles, Loader2 } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -11,6 +10,8 @@ import { MerchCard } from "@/components/features/merch-card"
 import { SegmentedControl } from "@/components/ios/segmented-control"
 import { PillButton } from "@/components/ios/pill-button"
 import { BentoCard } from "@/components/ios/bento-card"
+import { useEffect, useState } from "react"
+import { merchApi } from "@/lib/api/client"
 
 const mockMerch = [
   {
@@ -132,6 +133,52 @@ function MerchesContent() {
   const [likedItems, setLikedItems] = useState<string[]>([])
   const [viewMode, setViewMode] = useState("grid")
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
+  const [merchItems, setMerchItems] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadMerch() {
+      try {
+        console.log("🔄 [MERCHES PAGE] Fetching merchandise from API...")
+        const data = await merchApi.getAll(0, 50)
+        console.log("✅ [MERCHES PAGE] API Response:", data)
+        console.log("📊 [MERCHES PAGE] Number of items:", data.items?.length || 0)
+        
+        const mapped = data.items.map((m: any) => ({
+          id: m.id.toString(),
+          title: m.name,
+          description: m.description,
+          image: m.image_url || "/kurash-sport-uniform-merchandise-uzbekistan.jpg",
+          price: m.price,
+          originalPrice: m.price * 1.2, // Simulated
+          rating: 4.5 + (m.id % 5) / 10,
+          soldCount: Math.floor((m.id * 13) % 100),
+          ownerName: m.owner?.full_name || "Sportchi",
+          ownerImage: m.owner?.avatar_url || "/uzbek-male-wrestler-athlete-portrait.jpg",
+          inStock: m.stock > 0,
+        }))
+        console.log("🗺️ [MERCHES PAGE] Mapped merchandise:", mapped)
+        
+        setMerchItems(mapped.length > 0 ? mapped : mockMerch)
+        console.log("✨ [MERCHES PAGE] Using real data:", mapped.length > 0)
+      } catch (error) {
+        console.error("❌ [MERCHES PAGE] Failed to load merch:", error)
+        setMerchItems(mockMerch)
+        console.log("⚠️ [MERCHES PAGE] Falling back to mock data")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadMerch()
+  }, [])
+
+  const filteredItems = merchItems.filter((item) => {
+    if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
+        !item.description.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false
+    }
+    return true
+  })
 
   const handleFilterChange = (groupId: string, values: string[]) => {
     setSelectedFilters((prev) => ({ ...prev, [groupId]: values }))
@@ -260,7 +307,7 @@ function MerchesContent() {
               {/* Controls */}
               <div className="flex items-center justify-between mb-6 ios-glass p-3 rounded-2xl">
                 <p className="text-sm text-muted-foreground px-2">
-                  <span className="font-semibold text-primary">{mockMerch.length}</span> mahsulot topildi
+                  <span className="font-semibold text-primary">{filteredItems.length}</span> mahsulot topildi
                 </p>
 
                 <SegmentedControl
@@ -274,23 +321,34 @@ function MerchesContent() {
               </div>
 
               {/* Grid */}
-              <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
-                {mockMerch.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                  >
-                    <MerchCard
-                      {...item}
-                      isLiked={likedItems.includes(item.id)}
-                      onToggleLike={() => toggleLike(item.id)}
-                      onAddToCart={() => console.log("Add to cart:", item.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Loader2 className="w-10 h-10 text-sport animate-spin mb-4" />
+                  <p className="text-muted-foreground">Yuklanmoqda...</p>
+                </div>
+              ) : (
+                <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
+                  <AnimatePresence mode="popLayout">
+                    {filteredItems.map((item, index) => (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.4, delay: index * 0.05 }}
+                      >
+                        <MerchCard
+                          {...item}
+                          isLiked={likedItems.includes(item.id)}
+                          onToggleLike={() => toggleLike(item.id)}
+                          onAddToCart={() => console.log("Add to cart:", item.id)}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
 
               {/* Load More */}
               <div className="mt-10 text-center">

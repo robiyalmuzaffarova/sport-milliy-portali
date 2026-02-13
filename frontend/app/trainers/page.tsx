@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
@@ -8,81 +8,20 @@ import { Footer } from "@/components/layout/footer"
 import { FilterPanel } from "@/components/common/filter-panel"
 import { TrainerCard } from "@/components/features/trainer-card"
 import { FloatingElement } from "@/components/common/floating-element"
+import { usersApi } from "@/lib/api/client"
 
-const mockTrainers = [
-  {
-    id: "1",
-    name: "Anvar Rahimov",
-    sport: "Kurash",
-    image: "/uzbek-male-kurash-coach-portrait.jpg",
-    rating: 4.9,
-    experience: 15,
-    location: "Toshkent",
-    students: 150,
-    isVerified: true,
-    price: "150,000 so'm/soat",
-  },
-  {
-    id: "2",
-    name: "Olga Petrova",
-    sport: "Tennis",
-    image: "/female-tennis-coach-portrait.jpg",
-    rating: 4.8,
-    experience: 12,
-    location: "Samarqand",
-    students: 85,
-    isVerified: true,
-    price: "200,000 so'm/soat",
-  },
-  {
-    id: "3",
-    name: "Bekzod Tursunov",
-    sport: "Boxing",
-    image: "/uzbek-male-boxing-coach-portrait.jpg",
-    rating: 4.7,
-    experience: 20,
-    location: "Farg'ona",
-    students: 200,
-    isVerified: true,
-    price: "120,000 so'm/soat",
-  },
-  {
-    id: "4",
-    name: "Nodira Aliyeva",
-    sport: "Gymnastics",
-    image: "/uzbek-female-gymnastics-coach-portrait.jpg",
-    rating: 4.9,
-    experience: 18,
-    location: "Buxoro",
-    students: 120,
-    isVerified: true,
-    price: "180,000 so'm/soat",
-  },
-  {
-    id: "5",
-    name: "Sardor Ismailov",
-    sport: "Football",
-    image: "/uzbek-male-football-coach-portrait.jpg",
-    rating: 4.6,
-    experience: 10,
-    location: "Andijon",
-    students: 95,
-    isVerified: true,
-    price: "100,000 so'm/soat",
-  },
-  {
-    id: "6",
-    name: "Marina Sidorova",
-    sport: "Swimming",
-    image: "/female-swimming-coach-portrait.jpg",
-    rating: 4.8,
-    experience: 14,
-    location: "Toshkent",
-    students: 110,
-    isVerified: true,
-    price: "170,000 so'm/soat",
-  },
-]
+interface Trainer {
+  id: string
+  name: string
+  sport: string
+  image: string
+  rating: number
+  experience: number
+  location: string
+  students: number
+  isVerified: boolean
+  price?: string
+}
 
 const filterGroups = [
   {
@@ -123,10 +62,98 @@ const filterGroups = [
 
 function TrainersContent() {
   const { t } = useLanguage()
+  const [isMounted, setIsMounted] = useState(false)
+  const [trainers, setTrainers] = useState<Trainer[]>([])
+  const [filteredTrainers, setFilteredTrainers] = useState<Trainer[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
 
+  // Ensure hydration matches by setting mounted flag first
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Fetch trainers from backend on component mount
+  useEffect(() => {
+    if (!isMounted) return
+
+    const fetchTrainers = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await usersApi.getTrainers(0, 100) // Fetch up to 100 trainers
+        
+        if (response.items && Array.isArray(response.items)) {
+          // Transform backend data to match TrainerCard props
+          const transformedTrainers: Trainer[] = response.items.map((user: any, index: number) => ({
+            id: String(user.id),
+            name: user.full_name || user.name || "Unknown Trainer",
+            sport: user.sport_type || user.sport || "General Sport",
+            image: user.avatar_url || user.image || "/placeholder.svg",
+            rating: Number(user.rating) || (4.5 + (index % 5) * 0.1), // Use index for consistency
+            experience: Number(user.years_experience) || Number(user.experience) || 8,
+            location: user.location || "Unknown Location",
+            students: Number(user.students_count) || (index % 10) * 25 + 50,
+            isVerified: Boolean(user.is_verified),
+            price: user.price || undefined,
+          }))
+          
+          setTrainers(transformedTrainers)
+          setFilteredTrainers(transformedTrainers)
+        } else {
+          throw new Error("Invalid response format from server")
+        }
+      } catch (err) {
+        console.error("Error fetching trainers:", err)
+        setError(err instanceof Error ? err.message : "Failed to load trainers")
+        setTrainers([])
+        setFilteredTrainers([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTrainers()
+  }, [isMounted])
+
+  // Handle filter changes
   const handleFilterChange = (groupId: string, values: string[]) => {
-    setSelectedFilters((prev) => ({ ...prev, [groupId]: values }))
+    const newFilters = { ...selectedFilters, [groupId]: values }
+    setSelectedFilters(newFilters)
+    
+    // Apply filters to trainers
+    let filtered = trainers
+    
+    // Filter by sport
+    if (newFilters["sport"]?.length > 0) {
+      filtered = filtered.filter((trainer) =>
+        newFilters["sport"].some((sport) =>
+          trainer.sport.toLowerCase().includes(sport.toLowerCase())
+        )
+      )
+    }
+    
+    // Filter by location
+    if (newFilters["region"]?.length > 0) {
+      filtered = filtered.filter((trainer) =>
+        newFilters["region"].some((region) =>
+          trainer.location.toLowerCase().includes(region.toLowerCase())
+        )
+      )
+    }
+    
+    // Filter by experience
+    if (newFilters["experience"]?.length > 0) {
+      filtered = filtered.filter((trainer) => {
+        return newFilters["experience"].some((exp) => {
+          const expValue = parseInt(exp)
+          return trainer.experience >= expValue
+        })
+      })
+    }
+    
+    setFilteredTrainers(filtered)
   }
 
   return (
@@ -168,24 +195,48 @@ function TrainersContent() {
 
             {/* Trainers Grid */}
             <div className="flex-1">
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-muted-foreground">
-                  <span className="font-semibold text-foreground">{mockTrainers.length}</span> murabbiy topildi
-                </p>
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Murabbiylar yuklanmoqda...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center p-6 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <p className="text-red-500 font-semibold">Xato!</p>
+                    <p className="text-muted-foreground text-sm mt-2">{error}</p>
+                  </div>
+                </div>
+              ) : filteredTrainers.length === 0 ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <p className="text-muted-foreground">Siz tanlagan filtrlarga mos murabbiylar topilmadi</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <p className="text-muted-foreground">
+                      <span className="font-semibold text-foreground">{filteredTrainers.length}</span> murabbiy topildi
+                    </p>
+                  </div>
 
-              <div className="grid sm:grid-cols-2 gap-6">
-                {mockTrainers.map((trainer, index) => (
-                  <motion.div
-                    key={trainer.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                  >
-                    <TrainerCard {...trainer} />
-                  </motion.div>
-                ))}
-              </div>
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    {filteredTrainers.map((trainer, index) => (
+                      <motion.div
+                        key={trainer.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.05 }}
+                      >
+                        <TrainerCard {...trainer} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
