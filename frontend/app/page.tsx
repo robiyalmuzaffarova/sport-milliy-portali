@@ -136,7 +136,7 @@ function HomeContent() {
       title: "Loading...",
       excerpt: "Yangiliklar yuklanmoqda",
       image: "/placeholder.svg",
-      date: new Date().toLocaleDateString("uz-UZ"),
+      date: "2026-02-13",
       category: "Yangiliklar",
     },
   ])
@@ -185,12 +185,8 @@ function HomeContent() {
           excerpt: news.description || news.content || "No description",
           image: news.image_url || news.image || "/placeholder.svg",
           date: news.created_at
-            ? new Date(news.created_at).toLocaleDateString("uz-UZ", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })
-            : new Date().toLocaleDateString("uz-UZ"),
+            ? news.created_at.split("T")[0]
+            : "2026-02-13",
           category: news.category || "Yangiliklar",
         }))
         setLatestNews(transformed.length > 0 ? transformed : [])
@@ -594,7 +590,7 @@ function HomeContent() {
             >
               <div className="relative aspect-[4/3] rounded-3xl overflow-hidden">
                 <Image
-                  src="/uzbekistan-sports-team-athletes-training-modern-st.jpg"
+                  src="/sportsmen.png"
                   alt="Sport Milliy Portali About"
                   fill
                   className="object-cover"

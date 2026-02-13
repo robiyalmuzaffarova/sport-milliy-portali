@@ -5,6 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Calendar, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { formatDateUzbekConsistent } from "@/lib/date-utils"
 
 interface NewsCardProps {
   id: string
@@ -56,7 +57,7 @@ export function NewsCard({ id, title, excerpt, image, date, category, className 
         <div className="p-5">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-3">
             <Calendar className="w-4 h-4" />
-            {date}
+            {formatDateUzbekConsistent(date)}
           </div>
 
           <h3 className="font-semibold text-lg text-card-foreground line-clamp-2 group-hover:text-sport transition-colors tracking-tight">
