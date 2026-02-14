@@ -15,7 +15,7 @@ export function Footer() {
       <div className="border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-            <span className="text-3xl font-light text-white/40 tabular-nums">1991</span>
+            <span className="text-3xl font-light text-white/40 tabular-nums">2025</span>
             <div className="flex-1 max-w-xs h-px bg-gradient-to-r from-transparent via-white/20 to-transparent hidden md:block" />
             <div className="flex items-center gap-3">
               <div className="w-14 h-14 rounded-2xl bg-sport flex items-center justify-center shadow-lg">

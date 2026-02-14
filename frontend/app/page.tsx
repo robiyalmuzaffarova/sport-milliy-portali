@@ -130,6 +130,7 @@ function HomeContent() {
       isTopWeek: false,
     },
   ])
+  const [athleteAvatars, setAthleteAvatars] = useState<any[]>(participantAvatars)
   const [latestNews, setLatestNews] = useState<any[]>([
     {
       id: "1",
@@ -151,7 +152,7 @@ function HomeContent() {
 
     const fetchAthletes = async () => {
       try {
-        const response = await usersApi.getAthletes(0, 4)
+        const response = await usersApi.getAthletes(0, 8)
         const transformed = response.items.map((user: any) => ({
           id: String(user.id),
           name: user.full_name || user.name || "Unknown Athlete",
@@ -163,10 +164,18 @@ function HomeContent() {
           isVerified: Boolean(user.is_verified),
           isTopWeek: Boolean(user.is_top_week),
         }))
-        setWeekAthletes(transformed.length > 0 ? transformed : [])
+        setWeekAthletes(transformed.length > 0 ? transformed.slice(0, 4) : [])
+        
+        // Set avatars for the 2450+ section from all fetched athletes
+        const avatars = transformed.map((athlete: any) => ({
+          src: athlete.image,
+          alt: athlete.name,
+        }))
+        setAthleteAvatars(avatars.length > 0 ? avatars : participantAvatars)
       } catch (error) {
         console.error("Failed to fetch athletes:", error)
         // Keep the placeholder on error
+        setAthleteAvatars(participantAvatars)
       }
     }
 
@@ -281,7 +290,7 @@ function HomeContent() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.5 }}
             >
-              <AvatarStack avatars={participantAvatars} max={4} size="md" />
+              <AvatarStack avatars={athleteAvatars} max={4} size="md" />
               <div className="text-sm">
                 <span className="font-semibold text-primary text-base">2,450+</span>
                 <span className="text-muted-foreground ml-1 text-base">sportchilar qo'shildi</span>
@@ -333,7 +342,7 @@ function HomeContent() {
               <div className="mt-6 pt-6 border-t border-border">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Band qilish</span>
-                  <span className="font-semibold text-sport">50,000 so'm/soat</span>
+                  <span className="font-semibold text-sport">50,000 so'mdan/soat</span>
                 </div>
                 <PillButton variant="outline" size="sm" className="w-full mt-4">
                   Batafsil
@@ -400,25 +409,25 @@ function HomeContent() {
                 <Link href="/athletes">
                   <div className="p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-center">
                     <Users className="w-5 h-5 mx-auto mb-1 text-sport" />
-                    <span className="text-xs font-medium">Sportchilar</span>
+                    <span className="text-xs font-medium text-sport">Sportchilar</span>
                   </div>
                 </Link>
                 <Link href="/news">
                   <div className="p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-center">
                     <Newspaper className="w-5 h-5 mx-auto mb-1 text-sport" />
-                    <span className="text-xs font-medium">Yangiliklar</span>
+                    <span className="text-xs font-medium text-sport">Yangiliklar</span>
                   </div>
                 </Link>
                 <Link href="/job-vacancies">
                   <div className="p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-center">
                     <Briefcase className="w-5 h-5 mx-auto mb-1 text-sport" />
-                    <span className="text-xs font-medium">Ish joylari</span>
+                    <span className="text-xs font-medium text-sport">Ish joylari</span>
                   </div>
                 </Link>
                 <Link href="/monetization">
                   <div className="p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-center">
                     <Heart className="w-5 h-5 mx-auto mb-1 text-sport" />
-                    <span className="text-xs font-medium">Ehson</span>
+                    <span className="text-xs font-medium text-sport">Donat</span>
                   </div>
                 </Link>
               </div>

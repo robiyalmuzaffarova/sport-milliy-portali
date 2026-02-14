@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { Check, Sparkles } from "lucide-react"
 import { AvatarStack } from "./avatar-stack"
@@ -94,6 +95,7 @@ export function SubscriptionCard({
             isSport ? "border-white/30 text-white hover:bg-white/10" :
             "bg-primary text-primary-foreground",
           )}
+          onClick={() => window.location.href = "/monetization"}
         >
           Obuna bo'lish
         </PillButton>
