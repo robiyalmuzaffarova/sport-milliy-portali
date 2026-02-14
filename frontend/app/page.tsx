@@ -263,13 +263,15 @@ function HomeContent() {
                   {t.hero.cta1}
                 </PillButton>
               </Link>
-              <PillButton
-                variant="outline"
-                size="lg"
-                className="min-w-[200px] backdrop-blur-sm bg-card/30 border-[#3c5a3c]/30 text-[#3c5a3c]"
-              >
-                {t.hero.cta2}
-              </PillButton>
+              <Link href="#about">
+                <PillButton
+                  variant="outline"
+                  size="lg"
+                  className="min-w-[200px] backdrop-blur-sm bg-card/30 border-[#3c5a3c]/30 text-[#3c5a3c]"
+                >
+                  {t.hero.cta2}
+                </PillButton>
+              </Link>
             </motion.div>
 
             {/* Social Proof */}
@@ -478,7 +480,7 @@ function HomeContent() {
               <h2 className="text-3xl md:text-4xl font-bold text-primary tracking-tight">{t.sections.weekAthletes}</h2>
             </div>
             <Link href="/athletes">
-              <PillButton variant="outline" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
+              <PillButton variant="outline" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right" className="bg-[#4A6348] border-[#4A6348] hover:bg-[#3d5239]">
                 {t.sections.viewAll}
               </PillButton>
             </Link>
@@ -509,7 +511,7 @@ function HomeContent() {
               <p className="text-muted-foreground mt-1">Sport olamidan so'nggi yangiliklar</p>
             </div>
             <Link href="/news">
-              <PillButton variant="outline" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
+              <PillButton variant="outline" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right" className="bg-[#4A6348] border-[#4A6348] hover:bg-[#3d5239]">
                 {t.sections.viewAll}
               </PillButton>
             </Link>

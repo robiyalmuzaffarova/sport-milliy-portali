@@ -86,6 +86,7 @@ export function SubscriptionCard({
         </ul>
 
         <PillButton
+          suppressHydrationWarning
           variant={(popular || isSport) ? "outline" : "filled"}
           className={cn(
             "w-full",
