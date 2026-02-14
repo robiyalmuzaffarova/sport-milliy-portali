@@ -9,6 +9,7 @@ import { NewsCard } from "@/components/features/news-card"
 import { Button } from "@/components/ui/button"
 import { FloatingElement } from "@/components/common/floating-element"
 import { newsApi } from "@/lib/api/client"
+import { formatDateUzbekConsistent } from "@/lib/date-utils"
 
 const newsCategories = ["Barchasi", "Yutuqlar", "Musobaqalar", "Yangiliklar", "Intervyu", "Sport salomatligi"]
 
@@ -99,7 +100,18 @@ function NewsContent() {
         setIsLoading(true)
         const response = await newsApi.getAll(0, 50)
         if (response.items && Array.isArray(response.items)) {
-          setNews(response.items)
+          // Transform API data to match NewsCard props
+          const transformed = response.items.map((news: any) => ({
+            id: String(news.id),
+            title: news.title || "News Title",
+            excerpt: news.description || news.content || "No description",
+            image: news.image_url || news.image || "/placeholder.svg",
+            date: news.created_at
+              ? news.created_at.split("T")[0]
+              : "2026-02-13",
+            category: news.category || "Yangiliklar",
+          }))
+          setNews(transformed)
         } else {
           setNews(mockNews)
         }
