@@ -337,7 +337,7 @@ function HomeContent() {
               href="/education"
               variant="default"
               size="lg"
-              className="md:col-span-2 lg:col-span-1 lg:row-span-2"
+              className="md:col-span-2 lg:col-span-1"
             >
               <div className="mt-6 pt-6 border-t border-border">
                 <div className="flex items-center justify-between text-sm">
@@ -350,24 +350,52 @@ function HomeContent() {
               </div>
             </BentoCard>
 
-            {/* Promo Card */}
-            <BentoCard
-              title="50% CHEGIRMA"
-              description="Birinchi oy uchun maxsus taklif"
-              variant="warm"
-              size="md"
-              className="lg:col-span-2"
-            >
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm opacity-80">
-                  <span>Amal qilish muddati:</span>
-                  <span className="ml-2 font-semibold">28 Yanvar, 2026</span>
-                </div>
-                <PillButton size="sm" className="bg-white text-warm hover:bg-white/90">
-                  Olish
-                </PillButton>
-              </div>
-            </BentoCard>
+            {/* Promo Card - Latest News Featured in Brown Card with Image */}
+            {latestNews.length > 0 && (
+              <Link href={`/news/${latestNews[0].id}`}>
+                <motion.div
+                  className="relative rounded-3xl overflow-hidden lg:col-span-2 lg:row-span-2 cursor-pointer hover:shadow-lg transition-shadow h-full min-h-[340px]"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  whileHover={{ y: -4 }}
+                >
+                  {/* Background Image */}
+                  <div className="absolute inset-0 z-0">
+                    <Image
+                      src={latestNews[0].image || "/placeholder.svg"}
+                      alt={latestNews[0].title}
+                      fill
+                      className="object-cover"
+                    />
+                    {/* Dark overlay for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-orange-900/95 via-orange-800/80 to-orange-700/60" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-lg text-white leading-tight line-clamp-3">
+                        {latestNews[0].title}
+                      </h3>
+                      <p className="text-sm text-white/80 leading-relaxed line-clamp-3">
+                        {latestNews[0].excerpt}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/20">
+                      <div className="text-sm text-white/90">
+                        <span>Chiqarilgan:</span>
+                        <span className="ml-2 font-semibold">{latestNews[0].date}</span>
+                      </div>
+                      <PillButton size="sm" className="bg-white text-orange-700 hover:bg-white/90 font-medium">
+                        O'qish
+                      </PillButton>
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+            )}
 
             {/* Stats Card */}
             <div className="ios-card p-6 rounded-3xl">
@@ -377,27 +405,46 @@ function HomeContent() {
                 </div>
                 <span className="text-sm font-medium text-muted-foreground">Statistika</span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-3xl font-bold text-primary">2.4k+</div>
-                  <div className="text-xs text-muted-foreground">Sportchilar</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">2.4k+</div>
+                  <div className="text-xs text-muted-foreground mt-1">Sportchilar</div>
                 </div>
-                <div>
-                  <div className="text-3xl font-bold text-primary">380</div>
-                  <div className="text-xs text-muted-foreground">Murabbiylar</div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">380</div>
+                  <div className="text-xs text-muted-foreground mt-1">Murabbiylar</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">150+</div>
+                  <div className="text-xs text-muted-foreground mt-1">Akademiyalar</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">450+</div>
+                  <div className="text-xs text-muted-foreground mt-1">Ish joylari</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">85+</div>
+                  <div className="text-xs text-muted-foreground mt-1">Merche</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">12.5k+</div>
+                  <div className="text-xs text-muted-foreground mt-1">Donatsiyalar</div>
                 </div>
               </div>
             </div>
 
             {/* AI Buddy Card */}
-            <BentoCard
-              title="AI Sport Buddy"
-              description="Sun'iy intellekt yordamida shaxsiy tavsiyalar"
-              icon={<MessageCircle className="w-6 h-6" />}
-              href="/ai-buddy"
-              variant="sport"
-              size="md"
-            />
+            <div className="h-full">
+              <BentoCard
+                title="AI Sport Buddy"
+                description="Sun'iy intellekt yordamida shaxsiy tavsiyalar"
+                icon={<MessageCircle className="w-6 h-6" />}
+                href="/ai-buddy"
+                variant="sport"
+                size="md"
+                className="h-full"
+              />
+            </div>
 
             {/* Quick Action Card */}
             <div className="ios-card p-6 rounded-3xl">
