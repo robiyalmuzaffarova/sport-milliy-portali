@@ -26,6 +26,7 @@ const mockMerch = [
     ownerName: "Akmal Nurmatov",
     ownerImage: "/uzbek-male-wrestler-athlete-portrait.jpg",
     inStock: true,
+    category: "clothing",
   },
   {
     id: "2",
@@ -38,6 +39,7 @@ const mockMerch = [
     ownerName: "Dilnoza Karimova",
     ownerImage: "/uzbek-female-tennis-player-portrait.jpg",
     inStock: true,
+    category: "equipment",
   },
   {
     id: "3",
@@ -51,6 +53,7 @@ const mockMerch = [
     ownerName: "Rustam Xoliqov",
     ownerImage: "/uzbek-male-boxer-athlete-portrait.jpg",
     inStock: true,
+    category: "accessories",
   },
   {
     id: "4",
@@ -63,6 +66,7 @@ const mockMerch = [
     ownerName: "Malika Azimova",
     ownerImage: "/uzbek-female-gymnast-athlete-portrait.jpg",
     inStock: true,
+    category: "accessories",
   },
   {
     id: "5",
@@ -75,6 +79,7 @@ const mockMerch = [
     ownerName: "Jamshid Raximov",
     ownerImage: "/uzbek-male-football-player-portrait.jpg",
     inStock: false,
+    category: "equipment",
   },
   {
     id: "6",
@@ -88,6 +93,7 @@ const mockMerch = [
     ownerName: "Nilufar Saidova",
     ownerImage: "/uzbek-female-swimmer-athlete-portrait.jpg",
     inStock: true,
+    category: "accessories",
   },
 ]
 
@@ -101,17 +107,6 @@ const filterGroups = [
       { value: "equipment", label: "Jihozlar", count: 89 },
       { value: "accessories", label: "Aksessuarlar", count: 124 },
       { value: "footwear", label: "Oyoq kiyim", count: 67 },
-    ],
-  },
-  {
-    id: "sport",
-    label: "Sport turi",
-    type: "checkbox" as const,
-    options: [
-      { value: "kurash", label: "Kurash", count: 45 },
-      { value: "boxing", label: "Boxing", count: 38 },
-      { value: "tennis", label: "Tennis", count: 32 },
-      { value: "football", label: "Football", count: 56 },
     ],
   },
   {
@@ -156,6 +151,7 @@ function MerchesContent() {
           ownerName: m.owner?.full_name || "Sportchi",
           ownerImage: m.owner?.avatar_url || "/uzbek-male-wrestler-athlete-portrait.jpg",
           inStock: m.stock > 0,
+          category: m.category || m.type || "equipment", // Get category from API or default to equipment
         }))
         console.log("🗺️ [MERCHES PAGE] Mapped merchandise:", mapped)
         
@@ -173,10 +169,27 @@ function MerchesContent() {
   }, [])
 
   const filteredItems = merchItems.filter((item) => {
+    // Search filter
     if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
         !item.description.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false
     }
+
+    // Category filter - direct comparison with category field
+    if (selectedFilters.category && selectedFilters.category.length > 0) {
+      if (!selectedFilters.category.includes(item.category)) {
+        return false
+      }
+    }
+
+    // Price range filter
+    if (selectedFilters.price && selectedFilters.price.length > 0) {
+      const priceRange = selectedFilters.price[0]
+      if (priceRange === "0-100000" && item.price > 100000) return false
+      if (priceRange === "100000-500000" && (item.price < 100000 || item.price > 500000)) return false
+      if (priceRange === "500000+" && item.price < 500000) return false
+    }
+
     return true
   })
 
@@ -326,7 +339,7 @@ function MerchesContent() {
                   <Loader2 className="w-10 h-10 text-sport animate-spin mb-4" />
                   <p className="text-muted-foreground">Yuklanmoqda...</p>
                 </div>
-              ) : (
+              ) : filteredItems.length > 0 ? (
                 <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
                   <AnimatePresence mode="popLayout">
                     {filteredItems.map((item, index) => (
@@ -347,6 +360,10 @@ function MerchesContent() {
                       </motion.div>
                     ))}
                   </AnimatePresence>
+                </div>
+              ) : (
+                <div className="col-span-full py-12 text-center">
+                  <p className="text-muted-foreground">Criteria ga mos mahsulot topilmadi</p>
                 </div>
               )}
 

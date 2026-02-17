@@ -92,6 +92,7 @@ class MerchAdmin(BaseAdminView, model=Merch):
         Merch.id,
         Merch.name,
         Merch.brand,
+        Merch.category,
         Merch.price,
         Merch.stock,
         Merch.is_available,
@@ -102,7 +103,7 @@ class MerchAdmin(BaseAdminView, model=Merch):
     column_searchable_list = [Merch.name, Merch.description, Merch.brand]
     column_sortable_list = [Merch.id, Merch.name, Merch.price, Merch.stock, Merch.created_at]
     column_default_sort = [(Merch.created_at, True)]
-    column_filters = [Merch.is_available, Merch.owner_id]
+    column_filters = [Merch.category, Merch.is_available, Merch.owner_id]
 
     form_columns = [
         Merch.name,
@@ -111,6 +112,7 @@ class MerchAdmin(BaseAdminView, model=Merch):
         Merch.price,
         Merch.stock,
         Merch.image_url,
+        Merch.category,
         Merch.is_available,
         Merch.owner_id
     ]

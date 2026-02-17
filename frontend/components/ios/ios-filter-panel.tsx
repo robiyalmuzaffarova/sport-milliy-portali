@@ -173,7 +173,7 @@ export function IOSFilterPanel({
         )}
         <PillButton variant="filled" className="w-full bg-primary hover:bg-primary/90">
           <SlidersHorizontal className="w-4 h-4" />
-          Ko'proq filtrlar
+          Filterlash
         </PillButton>
       </div>
     </div>

@@ -44,26 +44,13 @@ const filterGroups = [
     ],
   },
   {
-    id: "region",
-    label: "Viloyat",
-    type: "checkbox" as const,
-    options: [
-      { value: "tashkent", label: "Toshkent", count: 120 },
-      { value: "samarkand", label: "Samarqand", count: 45 },
-      { value: "fergana", label: "Farg'ona", count: 38 },
-      { value: "bukhara", label: "Buxoro", count: 32 },
-      { value: "andijan", label: "Andijon", count: 28 },
-      { value: "namangan", label: "Namangan", count: 25 },
-    ],
-  },
-  {
     id: "rating",
     label: "Reyting",
     type: "radio" as const,
     options: [
-      { value: "4.5+", label: "4.5 va yuqori" },
-      { value: "4.0+", label: "4.0 va yuqori" },
-      { value: "3.5+", label: "3.5 va yuqori" },
+      { value: "4.5", label: "4.5 va yuqori" },
+      { value: "4.0", label: "4.0 va yuqori" },
+      { value: "3.5", label: "3.5 va yuqori" },
     ],
   },
 ]
@@ -133,6 +120,34 @@ function AthletesContent() {
     setSelectedFilters({})
     setSearchQuery("")
   }
+
+  // Filtering logic
+  const filteredAthletes = athletes.filter((athlete) => {
+    // Search filter - match name or sport
+    if (searchQuery && !athlete.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !athlete.sport.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false
+    }
+
+    // Sport filter - match exact sport name
+    if (selectedFilters.sport && selectedFilters.sport.length > 0) {
+      const sportMatch = selectedFilters.sport.some(sport => {
+        const athleteSportLower = athlete.sport.toLowerCase()
+        const filterSportLower = sport.toLowerCase()
+        return athleteSportLower === filterSportLower || athleteSportLower.includes(filterSportLower)
+      })
+      if (!sportMatch) return false
+    }
+
+    // Rating filter
+    if (selectedFilters.rating && selectedFilters.rating.length > 0) {
+      const ratingValue = selectedFilters.rating[0]
+      const ratingThreshold = parseFloat(ratingValue)
+      if (athlete.rating < ratingThreshold) return false
+    }
+
+    return true
+  })
 
   return (
     <div className="min-h-screen bg-card" suppressHydrationWarning>
@@ -234,7 +249,7 @@ function AthletesContent() {
               {/* Controls */}
               <div className="flex items-center justify-between mb-6 ios-glass p-3 rounded-2xl">
                 <p className="text-sm text-muted-foreground px-2">
-                  <span className="font-semibold text-primary">{athletes.length}</span> sportchi topildi
+                  <span className="font-semibold text-primary">{filteredAthletes.length}</span> sportchi topildi
                 </p>
 
                 <SegmentedControl
@@ -258,16 +273,22 @@ function AthletesContent() {
                 <>
                   {/* Grid */}
                   <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
-                    {athletes.map((athlete, index) => (
-                      <motion.div
-                        key={athlete.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.05 }}
-                      >
-                        <AthleteCard {...athlete} />
-                      </motion.div>
-                    ))}
+                    {filteredAthletes.length > 0 ? (
+                      filteredAthletes.map((athlete, index) => (
+                        <motion.div
+                          key={athlete.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.05 }}
+                        >
+                          <AthleteCard {...athlete} />
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="col-span-full py-12 text-center">
+                        <p className="text-muted-foreground">Criteria ga mos sportchi topilmadi</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Load More */}
