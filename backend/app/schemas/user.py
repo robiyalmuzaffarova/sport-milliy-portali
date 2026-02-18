@@ -49,6 +49,7 @@ class UserResponse(UserBase):
     is_superuser: bool  # Added to show superuser status
     views_count: int
     donations_received: int
+    rating: float = 4.5  # User rating (0-5 scale)
     created_at: datetime
     updated_at: datetime
 

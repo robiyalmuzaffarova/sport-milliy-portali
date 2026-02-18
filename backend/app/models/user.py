@@ -1,7 +1,7 @@
 """
 User Model
 """
-from sqlalchemy import Column, String, Boolean, Enum, Text, Integer
+from sqlalchemy import Column, String, Boolean, Enum, Text, Integer, Float
 from sqlalchemy.orm import relationship
 import enum
 
@@ -54,6 +54,7 @@ class User(BaseModel):
     # Statistics
     views_count = Column(Integer, default=0, nullable=False)
     donations_received = Column(Integer, default=0, nullable=False)  # in UZS
+    rating = Column(Float, default=4.5, nullable=False)  # User rating (0-5 scale)
     
     # Relationships
     news_articles = relationship("News", back_populates="author", cascade="all, delete-orphan")

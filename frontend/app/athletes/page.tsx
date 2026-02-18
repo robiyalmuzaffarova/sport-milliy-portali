@@ -27,22 +27,7 @@ const mockAthletes = [
   },
 ]
 
-const filterGroups = [
-  {
-    id: "sport",
-    label: "Sport turi",
-    type: "checkbox" as const,
-    options: [
-      { value: "kurash", label: "Kurash", count: 45 },
-      { value: "boxing", label: "Boxing", count: 38 },
-      { value: "tennis", label: "Tennis", count: 32 },
-      { value: "football", label: "Football", count: 56 },
-      { value: "gymnastics", label: "Gymnastics", count: 24 },
-      { value: "swimming", label: "Swimming", count: 28 },
-      { value: "judo", label: "Judo", count: 35 },
-      { value: "athletics", label: "Athletics", count: 41 },
-    ],
-  },
+const staticRatingFilter: any[] = [
   {
     id: "rating",
     label: "Reyting",
@@ -71,11 +56,44 @@ function AthletesContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState("grid")
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
+  const [filterGroups, setFilterGroups] = useState<any[]>(staticRatingFilter)
 
   // Ensure hydration matches by setting mounted flag first
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Build dynamic sport filter from athletes data
+  const buildSportFilters = (athletesData: any[]) => {
+    // Extract unique sports and count occurrences
+    const sportMap = new Map<string, number>()
+    
+    athletesData.forEach(athlete => {
+      const sport = athlete.sport || "General"
+      sportMap.set(sport, (sportMap.get(sport) || 0) + 1)
+    })
+
+    // Sort by count descending
+    const sortedSports = Array.from(sportMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([sport, count]) => ({
+        value: sport.toLowerCase().replace(/\s+/g, "-"),
+        label: sport,
+        count: count,
+      }))
+
+    const dynamicFilters = [
+      {
+        id: "sport",
+        label: "Sport turi",
+        type: "checkbox" as const,
+        options: sortedSports,
+      },
+      ...staticRatingFilter,
+    ]
+
+    setFilterGroups(dynamicFilters)
+  }
 
   useEffect(() => {
     if (!isMounted) return
@@ -98,12 +116,15 @@ function AthletesContent() {
             isTopWeek: Boolean(user.is_top_week),
           }))
           setAthletes(transformedAthletes)
+          buildSportFilters(transformedAthletes)
         } else {
           setAthletes(mockAthletes)
+          buildSportFilters(mockAthletes)
         }
       } catch (error) {
         console.error('Failed to fetch athletes:', error)
         setAthletes(mockAthletes)
+        buildSportFilters(mockAthletes)
       } finally {
         setIsLoading(false)
       }
@@ -129,21 +150,22 @@ function AthletesContent() {
       return false
     }
 
-    // Sport filter - match exact sport name
+    // Sport filter - match sport by normalized comparison
     if (selectedFilters.sport && selectedFilters.sport.length > 0) {
-      const sportMatch = selectedFilters.sport.some(sport => {
-        const athleteSportLower = athlete.sport.toLowerCase()
-        const filterSportLower = sport.toLowerCase()
-        return athleteSportLower === filterSportLower || athleteSportLower.includes(filterSportLower)
-      })
+      const athleteSportNormalized = athlete.sport.toLowerCase().replace(/\s+/g, "-")
+      const sportMatch = selectedFilters.sport.some(sport => sport === athleteSportNormalized)
       if (!sportMatch) return false
     }
 
-    // Rating filter
+    // Rating filter - ensure rating is a number and compare
     if (selectedFilters.rating && selectedFilters.rating.length > 0) {
       const ratingValue = selectedFilters.rating[0]
       const ratingThreshold = parseFloat(ratingValue)
-      if (athlete.rating < ratingThreshold) return false
+      const athleteRating = Number(athlete.rating) || 0
+      
+      if (athleteRating < ratingThreshold) {
+        return false
+      }
     }
 
     return true
