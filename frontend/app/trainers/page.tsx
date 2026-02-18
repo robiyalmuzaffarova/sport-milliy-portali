@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { FilterPanel } from "@/components/common/filter-panel"
+import { IOSFilterPanel } from "@/components/ios/ios-filter-panel"
 import { TrainerCard } from "@/components/features/trainer-card"
 import { FloatingElement } from "@/components/common/floating-element"
 import { usersApi } from "@/lib/api/client"
@@ -23,39 +23,15 @@ interface Trainer {
   price?: string
 }
 
-const filterGroups = [
-  {
-    id: "sport",
-    label: "Sport turi",
-    type: "checkbox" as const,
-    options: [
-      { value: "kurash", label: "Kurash", count: 28 },
-      { value: "boxing", label: "Boxing", count: 22 },
-      { value: "tennis", label: "Tennis", count: 18 },
-      { value: "football", label: "Football", count: 35 },
-      { value: "gymnastics", label: "Gymnastics", count: 15 },
-      { value: "swimming", label: "Swimming", count: 20 },
-    ],
-  },
-  {
-    id: "region",
-    label: "Viloyat",
-    type: "checkbox" as const,
-    options: [
-      { value: "tashkent", label: "Toshkent", count: 75 },
-      { value: "samarkand", label: "Samarqand", count: 30 },
-      { value: "fergana", label: "Farg'ona", count: 25 },
-      { value: "bukhara", label: "Buxoro", count: 20 },
-    ],
-  },
+const staticExperienceFilter: any[] = [
   {
     id: "experience",
     label: "Tajriba",
     type: "radio" as const,
     options: [
-      { value: "15+", label: "15+ yil" },
-      { value: "10+", label: "10+ yil" },
-      { value: "5+", label: "5+ yil" },
+      { value: "15", label: "15+ yil" },
+      { value: "10", label: "10+ yil" },
+      { value: "5", label: "5+ yil" },
     ],
   },
 ]
@@ -64,15 +40,48 @@ function TrainersContent() {
   const { t } = useLanguage()
   const [isMounted, setIsMounted] = useState(false)
   const [trainers, setTrainers] = useState<Trainer[]>([])
-  const [filteredTrainers, setFilteredTrainers] = useState<Trainer[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterGroups, setFilterGroups] = useState<any[]>(staticExperienceFilter)
 
   // Ensure hydration matches by setting mounted flag first
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Build dynamic sport filter from trainers data
+  const buildSportFilters = (trainersData: Trainer[]) => {
+    // Extract unique sports and count occurrences
+    const sportMap = new Map<string, number>()
+    
+    trainersData.forEach(trainer => {
+      const sport = trainer.sport || "General Sport"
+      sportMap.set(sport, (sportMap.get(sport) || 0) + 1)
+    })
+
+    // Sort by count descending
+    const sortedSports = Array.from(sportMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([sport, count]) => ({
+        value: sport.toLowerCase().replace(/\s+/g, "-"),
+        label: sport,
+        count: count,
+      }))
+
+    const dynamicFilters = [
+      {
+        id: "sport",
+        label: "Sport turi",
+        type: "checkbox" as const,
+        options: sortedSports,
+      },
+      ...staticExperienceFilter,
+    ]
+
+    setFilterGroups(dynamicFilters)
+  }
 
   // Fetch trainers from backend on component mount
   useEffect(() => {
@@ -100,7 +109,7 @@ function TrainersContent() {
           }))
           
           setTrainers(transformedTrainers)
-          setFilteredTrainers(transformedTrainers)
+          buildSportFilters(transformedTrainers)
         } else {
           throw new Error("Invalid response format from server")
         }
@@ -108,7 +117,6 @@ function TrainersContent() {
         console.error("Error fetching trainers:", err)
         setError(err instanceof Error ? err.message : "Failed to load trainers")
         setTrainers([])
-        setFilteredTrainers([])
       } finally {
         setLoading(false)
       }
@@ -119,42 +127,37 @@ function TrainersContent() {
 
   // Handle filter changes
   const handleFilterChange = (groupId: string, values: string[]) => {
-    const newFilters = { ...selectedFilters, [groupId]: values }
-    setSelectedFilters(newFilters)
-    
-    // Apply filters to trainers
-    let filtered = trainers
-    
-    // Filter by sport
-    if (newFilters["sport"]?.length > 0) {
-      filtered = filtered.filter((trainer) =>
-        newFilters["sport"].some((sport) =>
-          trainer.sport.toLowerCase().includes(sport.toLowerCase())
-        )
-      )
-    }
-    
-    // Filter by location
-    if (newFilters["region"]?.length > 0) {
-      filtered = filtered.filter((trainer) =>
-        newFilters["region"].some((region) =>
-          trainer.location.toLowerCase().includes(region.toLowerCase())
-        )
-      )
-    }
-    
-    // Filter by experience
-    if (newFilters["experience"]?.length > 0) {
-      filtered = filtered.filter((trainer) => {
-        return newFilters["experience"].some((exp) => {
-          const expValue = parseInt(exp)
-          return trainer.experience >= expValue
-        })
-      })
-    }
-    
-    setFilteredTrainers(filtered)
+    setSelectedFilters((prev) => ({ ...prev, [groupId]: values }))
   }
+
+  // Filtering logic
+  const filteredTrainers = trainers.filter((trainer) => {
+    // Search filter - match name or sport
+    if (searchQuery && !trainer.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !trainer.sport.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false
+    }
+
+    // Sport filter - match sport by normalized comparison
+    if (selectedFilters.sport && selectedFilters.sport.length > 0) {
+      const trainerSportNormalized = trainer.sport.toLowerCase().replace(/\s+/g, "-")
+      const sportMatch = selectedFilters.sport.some(sport => sport === trainerSportNormalized)
+      if (!sportMatch) return false
+    }
+
+    // Experience filter - ensure experience is a number and compare
+    if (selectedFilters.experience && selectedFilters.experience.length > 0) {
+      const expValue = selectedFilters.experience[0]
+      const expThreshold = parseInt(expValue)
+      const trainerExp = Number(trainer.experience) || 0
+      
+      if (trainerExp < expThreshold) {
+        return false
+      }
+    }
+
+    return true
+  })
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -185,12 +188,20 @@ function TrainersContent() {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Filters */}
             <div className="lg:w-80 flex-shrink-0">
-              <FilterPanel
-                searchPlaceholder={t.filters.search}
-                filterGroups={filterGroups}
-                selectedFilters={selectedFilters}
-                onFilterChange={handleFilterChange}
-              />
+              <div className="sticky top-28">
+                <IOSFilterPanel
+                  searchPlaceholder="Murabbiy qidirish..."
+                  searchValue={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  filterGroups={filterGroups}
+                  selectedFilters={selectedFilters}
+                  onFilterChange={handleFilterChange}
+                  onClearAll={() => {
+                    setSelectedFilters({})
+                    setSearchQuery("")
+                  }}
+                />
+              </div>
             </div>
 
             {/* Trainers Grid */}
