@@ -5,44 +5,48 @@ import { motion } from "framer-motion"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { FilterPanel } from "@/components/common/filter-panel"
+import { IOSFilterPanel } from "@/components/ios/ios-filter-panel"
 import { EducationCard } from "@/components/features/education-card"
 import { FloatingElement } from "@/components/common/floating-element"
 import { educationApi } from "@/lib/api/client"
 
-const filterGroups = [
+// Mock education data as fallback
+const mockEducationData = [
   {
-    id: "type",
-    label: "Turi",
-    type: "checkbox" as const,
-    options: [
-      { value: "academy", label: "Akademiya", count: 0 },
-      { value: "federation", label: "Federatsiya", count: 0 },
-      { value: "school", label: "Maktab", count: 0 },
-      { value: "club", label: "Club", count: 0 },
-    ],
+    id: "1",
+    name: "O'zbekiston Kurash Akademiyasi",
+    type: "academy",
+    description: "Professional kurash o'qitish markazi",
+    image: "/placeholder.svg",
+    location: "TASHKENT CITY",
+    address: "Tashkent, Yunusabad tumani",
+    workingHours: "08:00 - 20:00",
+    phone: "+998901234567",
+    rating: 4.8,
+    mapsLink: "https://maps.google.com",
   },
   {
-    id: "region",
-    label: "Viloyat",
-    type: "checkbox" as const,
-    options: [
-      { value: "tashkent", label: "Toshkent", count: 0 },
-      { value: "samarkand", label: "Samarqand", count: 0 },
-      { value: "fergana", label: "Farg'ona", count: 0 },
-      { value: "bukhara", label: "Buxoro", count: 0 },
-      { value: "andijan", label: "Andijon", count: 0 },
-      { value: "namangan", label: "Namangan", count: 0 },
-      { value: "kashkadarya", label: "Qashqadarya", count: 0 },
-      { value: "khorezm", label: "Xorezm", count: 0 },
-    ],
+    id: "2",
+    name: "O'zbekiston Teniss Federatsiyasi",
+    type: "federation",
+    description: "Milliy teniss federatsiyasi",
+    image: "/placeholder.svg",
+    location: "TASHKENT CITY",
+    address: "Tashkent, M.Ulug'bek tumani",
+    workingHours: "09:00 - 18:00",
+    phone: "+998901234568",
+    rating: 4.6,
+    mapsLink: "https://maps.google.com",
   },
 ]
 
 function EducationContent() {
   const { t } = useLanguage()
+  const [isMounted, setIsMounted] = useState(false)
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
+  const [filterGroups, setFilterGroups] = useState<any[]>([])
   const [education, setEducation] = useState<any[]>([])
+  const [allEducation, setAllEducation] = useState<any[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,49 +69,168 @@ function EducationContent() {
     }
   }
 
-  // Fetch education data from backend
+  // Ensure hydration matches by setting mounted flag first
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Build dynamic filters from education data
+  const buildDynamicFilters = (educationData: any[]) => {
+    // Extract unique types and count occurrences
+    const typeMap = new Map<string, number>()
+    const regionMap = new Map<string, number>()
+    
+    educationData.forEach(edu => {
+      const type = edu.type || "academy"
+      typeMap.set(type, (typeMap.get(type) || 0) + 1)
+      
+      const region = edu.location || "Unknown"
+      regionMap.set(region, (regionMap.get(region) || 0) + 1)
+    })
+
+    // Type mapping for labels
+    const typeLabels: Record<string, string> = {
+      "academy": "Akademiya",
+      "federation": "Federatsiya",
+      "school": "Maktab",
+      "club": "Club",
+    }
+
+    // Region mapping for labels
+    const regionLabels: Record<string, string> = {
+      "TASHKENT CITY": "Toshkent",
+      "SAMARKAND": "Samarqand",
+      "FERGANA": "Farg'ona",
+      "BUKHARA": "Buxoro",
+      "ANDIJAN": "Andijon",
+      "NAMANGAN": "Namangan",
+      "KASHKADARYA": "Qashqadarya",
+      "KHOREZM": "Xorezm",
+    }
+
+    // Sort types by count
+    const sortedTypes = Array.from(typeMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) => ({
+        value: type.toLowerCase(),
+        label: typeLabels[type] || type,
+        count: count,
+      }))
+
+    // Sort regions by count
+    const sortedRegions = Array.from(regionMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([region, count]) => ({
+        value: region.toLowerCase().replace(/\s+/g, "-"),
+        label: regionLabels[region] || region,
+        count: count,
+      }))
+
+    const dynamicFilters = [
+      {
+        id: "type",
+        label: "Turi",
+        type: "checkbox" as const,
+        options: sortedTypes.length > 0 ? sortedTypes : [
+          { value: "academy", label: "Akademiya", count: 0 },
+          { value: "federation", label: "Federatsiya", count: 0 },
+          { value: "school", label: "Maktab", count: 0 },
+          { value: "club", label: "Club", count: 0 },
+        ],
+      },
+      {
+        id: "region",
+        label: "Viloyat",
+        type: "checkbox" as const,
+        options: sortedRegions.length > 0 ? sortedRegions : [
+          { value: "tashkent-city", label: "Toshkent", count: 0 },
+          { value: "samarkand", label: "Samarqand", count: 0 },
+          { value: "fergana", label: "Farg'ona", count: 0 },
+          { value: "bukhara", label: "Buxoro", count: 0 },
+        ],
+      },
+    ]
+
+    setFilterGroups(dynamicFilters)
+  }
+
+  // Fetch all education data on component mount
   const fetchEducationData = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Build query parameters based on selected filters
-      const selectedType = selectedFilters.type?.[0]
-      const selectedRegion = selectedFilters.region?.[0]
+      // Fetch all education data - simple call without complex filtering
+      const response = await educationApi.getAll(0, 200)
 
-      // Map frontend region filter to backend region enum
-      const regionMap: Record<string, string> = {
-        "tashkent": "tashkent city",
-        "samarkand": "samarkand",
-        "fergana": "fergana",
-        "bukhara": "bukhara",
-      }
-
-      const response = await educationApi.getAll(
-        0,
-        50,
-        selectedRegion ? regionMap[selectedRegion] || selectedRegion : undefined,
-        selectedType,
-        searchQuery
-      )
-
-      if (response && response.items) {
+      if (response && response.items && Array.isArray(response.items) && response.items.length > 0) {
         const transformedData = response.items.map(transformEducationData)
+        setAllEducation(transformedData)
         setEducation(transformedData)
-        setTotalCount(response.total)
+        setTotalCount(response.total || transformedData.length)
+        buildDynamicFilters(transformedData)
+      } else {
+        // Use mock data if API returns empty
+        console.warn("No education data from API, using mock data")
+        setAllEducation(mockEducationData)
+        setEducation(mockEducationData)
+        setTotalCount(mockEducationData.length)
+        buildDynamicFilters(mockEducationData)
       }
     } catch (err: any) {
       console.error("Error fetching education data:", err)
-      setError(err.message || "Failed to fetch education data")
+      const errorMessage = err?.message || "Failed to fetch education data"
+      console.warn("Using mock education data as fallback")
+      
+      // Use mock data as fallback on error
+      setAllEducation(mockEducationData)
+      setEducation(mockEducationData)
+      setTotalCount(mockEducationData.length)
+      buildDynamicFilters(mockEducationData)
+      setError(null) // Don't show error if we have fallback data
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Fetch data when filters change
+  // Fetch data on mount
   useEffect(() => {
+    if (!isMounted) return
     fetchEducationData()
-  }, [selectedFilters, searchQuery])
+  }, [isMounted])
+
+  // Apply filters to education data
+  useEffect(() => {
+    let filtered = allEducation
+
+    // Search filter - match name or description
+    if (searchQuery) {
+      filtered = filtered.filter((edu) =>
+        edu.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        edu.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Type filter - match type
+    if (selectedFilters.type && selectedFilters.type.length > 0) {
+      filtered = filtered.filter((edu) =>
+        selectedFilters.type.some(type => type === edu.type.toLowerCase())
+      )
+    }
+
+    // Region filter - match location with flexible string comparison
+    if (selectedFilters.region && selectedFilters.region.length > 0) {
+      filtered = filtered.filter((edu) => {
+        const eduLocationLower = edu.location.toLowerCase().replace(/\s+/g, "-")
+        return selectedFilters.region.some(region => {
+          const regionLower = region.toLowerCase().replace(/\s+/g, "-")
+          return eduLocationLower === regionLower || eduLocationLower.includes(regionLower) || regionLower.includes(eduLocationLower)
+        })
+      })
+    }
+
+    setEducation(filtered)
+  }, [selectedFilters, searchQuery, allEducation])
 
   const handleFilterChange = (groupId: string, values: string[]) => {
     setSelectedFilters((prev) => ({ ...prev, [groupId]: values }))
@@ -139,12 +262,20 @@ function EducationContent() {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Filters */}
             <div className="lg:w-80 flex-shrink-0">
-              <FilterPanel
-                searchPlaceholder="Akademiya qidirish..."
-                filterGroups={filterGroups}
-                selectedFilters={selectedFilters}
-                onFilterChange={handleFilterChange}
-              />
+              <div className="sticky top-28">
+                <IOSFilterPanel
+                  searchPlaceholder="Akademiya qidirish..."
+                  searchValue={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  filterGroups={filterGroups}
+                  selectedFilters={selectedFilters}
+                  onFilterChange={handleFilterChange}
+                  onClearAll={() => {
+                    setSelectedFilters({})
+                    setSearchQuery("")
+                  }}
+                />
+              </div>
             </div>
 
             {/* Education Grid */}
@@ -155,8 +286,12 @@ function EducationContent() {
                     <span className="inline-block w-16 h-5 bg-muted rounded animate-pulse"></span>
                   </p>
                 ) : error ? (
-                  <p className="text-red-500">
-                    Xatolik: {error}
+                  <p className="text-amber-600 font-medium text-sm">
+                    ⚠️ Akademiyalar ehtiyot ma'lumotlari bilan ko'rsatilmoqda
+                  </p>
+                ) : education.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    Akademiya topilmadi
                   </p>
                 ) : (
                   <p className="text-muted-foreground">

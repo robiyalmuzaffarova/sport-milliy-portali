@@ -84,9 +84,14 @@ function RegisterContent() {
         >
           {/* Mobile Logo */}
           <Link href="/" className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-sport flex items-center justify-center">
-              <span className="text-white font-serif font-bold text-lg">S</span>
-            </div>
+            <Image
+              src="/icon.png"
+              alt="Sport Milliy Portali Logo"
+              width={40}
+              height={40}
+              className="rounded-lg"
+              priority
+            />
             <div>
               <h1 className="font-serif font-bold text-lg text-foreground">Sport Milliy Portali</h1>
             </div>

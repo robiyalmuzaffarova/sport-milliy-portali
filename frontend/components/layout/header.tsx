@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useLanguage } from "@/lib/i18n/language-context"
 import type { Language } from "@/lib/i18n/translations"
 import { Menu, X, Globe, ShoppingCart, Heart, User, MapPin, LayoutGrid } from "lucide-react"
@@ -25,16 +26,20 @@ export function Header() {
   const currentLang = languages.find((l) => l.code === language) || languages[0]
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-4">
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-2">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-sport/90 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
+        <div className="bg-sport/90 backdrop-blur-md border border-white/20 rounded-2xl px-3 py-2">
+          <div className="flex items-center gap-2">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-              <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                <span className="text-sport font-bold text-base">S</span>
-              </div>
-              <span className="hidden sm:block font-semibold text-white">Sport Milliy</span>
+            <Link href="/" className="flex items-center group shrink-0">
+              <Image
+                src="/icon.png"
+                alt="Sport Milliy Portali Logo"
+                width={140}
+                height={140}
+                className="group-hover:scale-110 transition-transform"
+                priority
+              />
             </Link>
 
             <div className="hidden lg:block">
@@ -51,7 +56,7 @@ export function Header() {
             </div>
 
             {/* Right Section */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-auto">
               {/* Desktop Nav Links */}
               <nav className="hidden lg:flex items-center gap-1">
                 <Link
