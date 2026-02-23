@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -12,12 +13,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { authApi } from "@/lib/api/client"
 
 function RegisterContent() {
   const { t } = useLanguage()
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep] = useState(1)
+  const [error, setError] = useState("")
+  const [isMounted, setIsMounted] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -27,20 +34,92 @@ function RegisterContent() {
     sportType: "",
   })
 
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleFileClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/png', 'image/jpeg']
+      if (!validTypes.includes(file.type)) {
+        setError('Faqat PNG yoki JPG formatida rasmlar yuborilishi mumkin')
+        return
+      }
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Fayl hajmi 5MB dan kam bo\'lishi kerak')
+        return
+      }
+      setSelectedFile(file)
+      setError('')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
     if (step === 1) {
+      // Validate first step
+      if (!formData.fullName || !formData.email || !formData.phone) {
+        setError("Iltimos, barcha maydonlarni to'ldiring")
+        return
+      }
       setStep(2)
+      setError("")
       return
     }
+
+    // Validate second step
+    // Sport type is only required for athletes and trainers, not observers
+    const requiresSportType = formData.userType === "athlete" || formData.userType === "trainer"
+    if (!formData.password || !formData.userType || (requiresSportType && !formData.sportType)) {
+      setError("Iltimos, barcha maydonlarni to'ldiring")
+      return
+    }
+
     setIsLoading(true)
-    setTimeout(() => {
+    setError("")
+
+    try {
+      const response = await authApi.register({
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.fullName,
+        phone_number: formData.phone,
+        role: formData.userType,
+        sport_type: formData.sportType,
+      })
+
+      // If registration was successful, redirect to login
+      if (response && response.id) {
+        // User created successfully, redirect to login
+        router.push("/login")
+      } else if (response.access_token) {
+        // Or if backend returns a token, auto-login
+        localStorage.setItem("access_token", response.access_token)
+        if (response.user) {
+          localStorage.setItem("user", JSON.stringify(response.user))
+        }
+        router.push("/profile")
+      } else {
+        setError(response.message || "Registration failed. Please try again.")
+      }
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.")
+      console.error("Registration error:", err)
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   return (
@@ -48,7 +127,7 @@ function RegisterContent() {
       {/* Left Panel - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <Image
-          src="/uzbekistan-sports-team-athletes-training-stadium-n.jpg"
+          src="/basket.jpg"
           alt="Sport Milliy Portali"
           fill
           className="object-cover"
@@ -56,13 +135,13 @@ function RegisterContent() {
         <div className="absolute inset-0 gradient-hero" />
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <Link href="/" className="absolute top-8 left-8 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-sport flex items-center justify-center">
-              <span className="text-white font-serif font-bold text-xl">S</span>
-            </div>
-            <div>
-              <h1 className="font-serif font-bold text-xl text-white">Sport Milliy</h1>
-              <p className="text-xs text-white/70">Portali</p>
-            </div>
+            <Image
+              src="/icon.png"
+              alt="Sport Milliy Portali Logo"
+              width={140}
+              height={140}
+              className="rounded-lg"
+            />
           </Link>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -87,8 +166,8 @@ function RegisterContent() {
             <Image
               src="/icon.png"
               alt="Sport Milliy Portali Logo"
-              width={40}
-              height={40}
+              width={60}
+              height={60}
               className="rounded-lg"
               priority
             />
@@ -97,23 +176,29 @@ function RegisterContent() {
             </div>
           </Link>
 
-          <div className="glass-card rounded-3xl p-8">
+          <div className="glass-card rounded-3xl p-8" suppressHydrationWarning>
             {/* Progress */}
             <div className="flex items-center gap-3 mb-6">
               <div className={`flex-1 h-1.5 rounded-full ${step >= 1 ? "bg-sport" : "bg-border"}`} />
               <div className={`flex-1 h-1.5 rounded-full ${step >= 2 ? "bg-sport" : "bg-border"}`} />
             </div>
 
-            <h2 className="font-serif font-bold text-2xl text-card-foreground mb-2">{t.nav.register}</h2>
-            <p className="text-muted-foreground text-sm mb-8">
+            <h2 className="font-serif font-bold text-2xl text-card-foreground mb-2" suppressHydrationWarning>{t.nav.register}</h2>
+            <p className="text-muted-foreground text-sm mb-8" suppressHydrationWarning>
               {step === 1 ? "Shaxsiy ma'lumotlaringizni kiriting" : "Qo'shimcha ma'lumotlar"}
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5" suppressHydrationWarning>
               {step === 1 ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">To&apos;liq ism</Label>
+                    <Label htmlFor="fullName" suppressHydrationWarning>To&apos;liq ism</Label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <Input
@@ -145,7 +230,7 @@ function RegisterContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefon</Label>
+                    <Label htmlFor="phone" suppressHydrationWarning>Telefon</Label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <Input
@@ -161,7 +246,7 @@ function RegisterContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password">Parol</Label>
+                    <Label htmlFor="password" suppressHydrationWarning>Parol</Label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <Input
@@ -186,7 +271,7 @@ function RegisterContent() {
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label>Foydalanuvchi turi</Label>
+                    <Label suppressHydrationWarning>Foydalanuvchi turi</Label>
                     <Select value={formData.userType} onValueChange={(v) => handleChange("userType", v)}>
                       <SelectTrigger className="h-12 rounded-xl">
                         <SelectValue placeholder="Turini tanlang" />
@@ -202,7 +287,7 @@ function RegisterContent() {
                   {(formData.userType === "athlete" || formData.userType === "trainer") && (
                     <>
                       <div className="space-y-2">
-                        <Label>Sport turi</Label>
+                        <Label suppressHydrationWarning>Sport turi</Label>
                         <Select value={formData.sportType} onValueChange={(v) => handleChange("sportType", v)}>
                           <SelectTrigger className="h-12 rounded-xl">
                             <SelectValue placeholder="Sport turini tanlang" />
@@ -219,11 +304,22 @@ function RegisterContent() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Hujjatlar</Label>
-                        <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-sport transition-colors cursor-pointer">
+                        <Label suppressHydrationWarning>Hujjatlar</Label>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          onChange={handleFileChange}
+                          className="hidden"
+                          aria-label="Upload documents"
+                        />
+                        <div
+                          onClick={handleFileClick}
+                          className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-sport transition-colors cursor-pointer"
+                        >
                           <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                           <p className="text-sm text-muted-foreground">
-                            Passport va guvohnoma rasmini yuklang
+                            {selectedFile ? selectedFile.name : 'Passport va guvohnoma rasmini yuklang'}
                             <br />
                             <span className="text-xs">PNG, JPG - 5MB gacha</span>
                           </p>
@@ -249,6 +345,7 @@ function RegisterContent() {
                   type="submit"
                   disabled={isLoading}
                   className="flex-1 h-12 bg-sport hover:bg-sport/90 text-white rounded-xl font-medium"
+                  suppressHydrationWarning
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
@@ -261,7 +358,7 @@ function RegisterContent() {
                       <ArrowRight className="w-4 h-4" />
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2" suppressHydrationWarning>
                       {t.nav.register}
                       <ArrowRight className="w-4 h-4" />
                     </span>
@@ -271,7 +368,7 @@ function RegisterContent() {
             </form>
 
             <div className="mt-6 pt-6 border-t border-border text-center">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-sm" suppressHydrationWarning>
                 Hisobingiz bormi?{" "}
                 <Link href="/login" className="text-sport font-medium hover:underline">
                   {t.nav.login}
@@ -287,8 +384,10 @@ function RegisterContent() {
 
 export default function RegisterPage() {
   return (
-    <LanguageProvider>
-      <RegisterContent />
-    </LanguageProvider>
+    <div suppressHydrationWarning>
+      <LanguageProvider>
+        <RegisterContent />
+      </LanguageProvider>
+    </div>
   )
 }

@@ -29,6 +29,7 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
     return (
       <button
         ref={ref}
+        suppressHydrationWarning
         className={cn(
           "inline-flex items-center justify-center rounded-full font-medium transition-all duration-200 active:scale-95",
           variants[variant],

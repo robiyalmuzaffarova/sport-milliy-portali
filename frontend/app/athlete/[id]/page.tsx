@@ -117,12 +117,19 @@ function AthleteProfileContent() {
       <Header />
 
       {/* Back Button */}
-      <section className="py-4 bg-background border-b border-border sticky top-0 z-40">
+      <section 
+        className="py-4 bg-background border-b border-border sticky top-0 z-40"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/runners.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <Button
             variant="ghost"
             onClick={() => router.push('/athletes')}
-            className="flex items-center gap-2 text-sport hover:text-sport/80 hover:bg-sport/5"
+            className="flex items-center gap-2 text-white hover:text-white/80 hover:bg-white/10"
           >
             <ArrowLeft className="w-4 h-4" />
             Sportchilarga qaytish
@@ -131,15 +138,15 @@ function AthleteProfileContent() {
       </section>
 
       {/* Cover Image */}
-      <div className="relative h-64 md:h-80 overflow-hidden">
+      <div className="relative h-80 md:h-96 overflow-hidden">
         <Image 
-          src="/sport1.png" 
+          src="/runners.jpg" 
           alt="Cover" 
           fill 
           className="object-cover" 
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-secondary via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/30 to-secondary" />
       </div>
 
       {/* Profile Header */}

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
 
@@ -14,6 +14,12 @@ interface SegmentedControlProps {
 }
 
 export function SegmentedControl({ options, value, onChange, variant = "default", className }: SegmentedControlProps) {
+  const [isMounted, setIsMounted] = useState(false)
+  
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const activeIndex = options.findIndex((opt) => opt.value === value)
   const isWhite = variant === "white"
 
@@ -29,8 +35,9 @@ export function SegmentedControl({ options, value, onChange, variant = "default"
               ? (isWhite ? "text-sport" : "text-primary") 
               : (isWhite ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-primary/70"),
           )}
+          suppressHydrationWarning
         >
-          {value === option.value && (
+          {value === option.value && isMounted && (
             <motion.div
               layoutId="segmented-bg"
               className="absolute inset-0 bg-white rounded-lg shadow-sm"
@@ -38,7 +45,7 @@ export function SegmentedControl({ options, value, onChange, variant = "default"
               transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
             />
           )}
-          <span className="relative z-10 flex items-center gap-1.5">
+          <span className="relative z-10 flex items-center gap-1.5" suppressHydrationWarning>
             {option.icon}
             {option.label}
           </span>

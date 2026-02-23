@@ -76,7 +76,7 @@ function EducationContent() {
 
   // Build dynamic filters from education data
   const buildDynamicFilters = (educationData: any[]) => {
-    // Extract unique types and count occurrences
+    // Count occurrences from actual data
     const typeMap = new Map<string, number>()
     const regionMap = new Map<string, number>()
     
@@ -88,66 +88,58 @@ function EducationContent() {
       regionMap.set(region, (regionMap.get(region) || 0) + 1)
     })
 
-    // Type mapping for labels
-    const typeLabels: Record<string, string> = {
-      "academy": "Akademiya",
-      "federation": "Federatsiya",
-      "school": "Maktab",
-      "club": "Club",
-    }
+    // All education types from backend
+    const allTypes = [
+      { value: "academy", label: "Akademiya", backendValue: "academy" },
+      { value: "federation", label: "Federatsiya", backendValue: "federation" },
+      { value: "school", label: "Maktab", backendValue: "school" },
+      { value: "club", label: "Club", backendValue: "club" },
+    ]
 
-    // Region mapping for labels
-    const regionLabels: Record<string, string> = {
-      "TASHKENT CITY": "Toshkent",
-      "SAMARKAND": "Samarqand",
-      "FERGANA": "Farg'ona",
-      "BUKHARA": "Buxoro",
-      "ANDIJAN": "Andijon",
-      "NAMANGAN": "Namangan",
-      "KASHKADARYA": "Qashqadarya",
-      "KHOREZM": "Xorezm",
-    }
+    // All 14 regions from backend with Uzbek translations
+    const allRegions = [
+      { value: "tashkent-city", label: "Toshkent shahar", backendValue: "tashkent city" },
+      { value: "tashkent-region", label: "Toshkent viloyat", backendValue: "tashkent region" },
+      { value: "samarkand", label: "Samarqand", backendValue: "samarkand" },
+      { value: "bukhara", label: "Buxoro", backendValue: "bukhara" },
+      { value: "fergana", label: "Farg'ona", backendValue: "fergana" },
+      { value: "andijan", label: "Andijon", backendValue: "andijan" },
+      { value: "namangan", label: "Namangan", backendValue: "namangan" },
+      { value: "kashkadarya", label: "Qashqadarya", backendValue: "kashkadarya" },
+      { value: "khorezm", label: "Xorezm", backendValue: "khorezm" },
+      { value: "karakalpakstan", label: "Qoraqalpog'iston", backendValue: "karakalpakstan" },
+      { value: "surkhandarya", label: "Surxondarya", backendValue: "surkhandarya" },
+      { value: "syrdarya", label: "Sirdarya", backendValue: "syrdarya" },
+      { value: "jizzakh", label: "Jizzax", backendValue: "jizzakh" },
+      { value: "navoiy", label: "Navoi", backendValue: "navoiy" },
+    ]
 
-    // Sort types by count
-    const sortedTypes = Array.from(typeMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([type, count]) => ({
-        value: type.toLowerCase(),
-        label: typeLabels[type] || type,
-        count: count,
-      }))
+    // Build type options with counts
+    const typeOptions = allTypes.map(type => ({
+      value: type.value,
+      label: type.label,
+      count: typeMap.get(type.backendValue) || 0,
+    }))
 
-    // Sort regions by count
-    const sortedRegions = Array.from(regionMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([region, count]) => ({
-        value: region.toLowerCase().replace(/\s+/g, "-"),
-        label: regionLabels[region] || region,
-        count: count,
-      }))
+    // Build region options with counts
+    const regionOptions = allRegions.map(region => ({
+      value: region.value,
+      label: region.label,
+      count: regionMap.get(region.backendValue) || 0,
+    }))
 
     const dynamicFilters = [
       {
         id: "type",
         label: "Turi",
         type: "checkbox" as const,
-        options: sortedTypes.length > 0 ? sortedTypes : [
-          { value: "academy", label: "Akademiya", count: 0 },
-          { value: "federation", label: "Federatsiya", count: 0 },
-          { value: "school", label: "Maktab", count: 0 },
-          { value: "club", label: "Club", count: 0 },
-        ],
+        options: typeOptions,
       },
       {
         id: "region",
         label: "Viloyat",
         type: "checkbox" as const,
-        options: sortedRegions.length > 0 ? sortedRegions : [
-          { value: "tashkent-city", label: "Toshkent", count: 0 },
-          { value: "samarkand", label: "Samarqand", count: 0 },
-          { value: "fergana", label: "Farg'ona", count: 0 },
-          { value: "bukhara", label: "Buxoro", count: 0 },
-        ],
+        options: regionOptions,
       },
     ]
 
@@ -160,34 +152,59 @@ function EducationContent() {
       setIsLoading(true)
       setError(null)
 
-      // Fetch all education data - simple call without complex filtering
-      const response = await educationApi.getAll(0, 200)
+      console.log("📍 Starting education data fetch...");
+
+      // Fetch all education data
+      let response;
+      try {
+        console.log("🔄 Calling educationApi.getAll(0, 100) - Limit must be between 1-100");
+        response = await educationApi.getAll(0, 100)
+        console.log("📦 API Response received:", {
+          response: response,
+          hasItems: !!response?.items,
+          itemsArray: Array.isArray(response?.items),
+          itemsLength: response?.items?.length,
+          responseKeys: response ? Object.keys(response) : [],
+          responseType: typeof response,
+        });
+      } catch (apiError) {
+        console.error("❌ API call failed:", apiError);
+        response = null
+      }
 
       if (response && response.items && Array.isArray(response.items) && response.items.length > 0) {
+        console.log("✅ Valid API data found, transforming...", response.items.length, "items");
         const transformedData = response.items.map(transformEducationData)
+        console.log("📊 Sample transformed education item:", transformedData[0])
+        console.log("📊 All education locations:", transformedData.map((e: any) => e.location))
+        console.log("📊 All education types:", transformedData.map((e: any) => e.type))
         setAllEducation(transformedData)
         setEducation(transformedData)
         setTotalCount(response.total || transformedData.length)
         buildDynamicFilters(transformedData)
+        console.log("✅ Successfully loaded API data:", transformedData.length, "items");
       } else {
-        // Use mock data if API returns empty
-        console.warn("No education data from API, using mock data")
+        console.log("ℹ️ No valid API data - Response structure:", {
+          hasResponse: !!response,
+          hasItems: !!response?.items,
+          isArray: Array.isArray(response?.items),
+          length: response?.items?.length,
+        });
+        console.log("ℹ️ Falling back to mock education data");
         setAllEducation(mockEducationData)
         setEducation(mockEducationData)
         setTotalCount(mockEducationData.length)
         buildDynamicFilters(mockEducationData)
       }
     } catch (err: any) {
-      console.error("Error fetching education data:", err)
-      const errorMessage = err?.message || "Failed to fetch education data"
-      console.warn("Using mock education data as fallback")
-      
-      // Use mock data as fallback on error
+      console.error("❌ Exception during fetch:", err?.message, err);
+      // Use mock data as fallback on any error
+      console.log("ℹ️ Using mock education data as fallback");
       setAllEducation(mockEducationData)
       setEducation(mockEducationData)
       setTotalCount(mockEducationData.length)
       buildDynamicFilters(mockEducationData)
-      setError(null) // Don't show error if we have fallback data
+      setError(null)
     } finally {
       setIsLoading(false)
     }
@@ -209,26 +226,32 @@ function EducationContent() {
         edu.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         edu.description.toLowerCase().includes(searchQuery.toLowerCase())
       )
+      console.log("🔍 Search filter applied:", searchQuery, "Result:", filtered.length)
     }
 
-    // Type filter - match type
+    // Type filter - exact match with education type
     if (selectedFilters.type && selectedFilters.type.length > 0) {
-      filtered = filtered.filter((edu) =>
-        selectedFilters.type.some(type => type === edu.type.toLowerCase())
-      )
+      filtered = filtered.filter((edu) => {
+        const eduType = edu.type?.toLowerCase() || "academy"
+        return selectedFilters.type.includes(eduType)
+      })
+      console.log("🏷️ Type filter applied:", selectedFilters.type, "Result:", filtered.length)
     }
 
-    // Region filter - match location with flexible string comparison
+    // Region filter - match location with proper normalization
     if (selectedFilters.region && selectedFilters.region.length > 0) {
       filtered = filtered.filter((edu) => {
-        const eduLocationLower = edu.location.toLowerCase().replace(/\s+/g, "-")
-        return selectedFilters.region.some(region => {
-          const regionLower = region.toLowerCase().replace(/\s+/g, "-")
-          return eduLocationLower === regionLower || eduLocationLower.includes(regionLower) || regionLower.includes(eduLocationLower)
+        const eduLocation = edu.location?.toLowerCase().replace(/\s+/g, "-") || ""
+        // Check if edu's location matches any selected region
+        return selectedFilters.region.some(selectedRegion => {
+          const selectedRegionNorm = selectedRegion.toLowerCase().replace(/\s+/g, "-")
+          return eduLocation === selectedRegionNorm
         })
       })
+      console.log("📍 Region filter applied:", selectedFilters.region, "Result:", filtered.length)
     }
 
+    console.log("✅ Final filtered results:", filtered.length, "items from", allEducation.length)
     setEducation(filtered)
   }, [selectedFilters, searchQuery, allEducation])
 

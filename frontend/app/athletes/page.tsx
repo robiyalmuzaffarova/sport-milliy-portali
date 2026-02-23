@@ -176,7 +176,9 @@ function AthletesContent() {
       <Header />
 
       {/* Hero Banner - iOS Style */}
-      <section className="relative pt-28 pb-12 bg-secondary overflow-hidden">
+      <section 
+        className="relative pt-28 pb-12 bg-secondary overflow-hidden"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>

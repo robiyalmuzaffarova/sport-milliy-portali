@@ -37,9 +37,14 @@ export function IOSFilterPanel({
   className,
 }: IOSFilterPanelProps) {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([filterGroups[0]?.id || ""])
+  const [expandedShowMore, setExpandedShowMore] = useState<string[]>([])
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) => (prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]))
+  }
+
+  const toggleShowMore = (groupId: string) => {
+    setExpandedShowMore((prev) => (prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]))
   }
 
   const handleOptionToggle = (groupId: string, value: string, type: "radio" | "checkbox") => {
@@ -109,46 +114,53 @@ export function IOSFilterPanel({
                     className="overflow-hidden"
                   >
                     <div className="pb-4 space-y-2">
-                      {group.options.slice(0, 5).map((option) => {
-                        const isSelected = selected.includes(option.value)
-                        return (
-                          <button
-                            key={option.value}
-                            onClick={() => handleOptionToggle(group.id, option.value, group.type || "checkbox")}
-                            className={cn(
-                              "w-full flex items-center justify-between p-3 rounded-xl transition-all",
-                              isSelected ? "bg-sport/10 text-sport" : "bg-secondary hover:bg-secondary/80 text-primary",
-                            )}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={cn(
-                                  "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                                  isSelected ? "border-sport bg-sport" : "border-muted-foreground/30",
-                                )}
-                              >
-                                {isSelected && (
-                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                )}
+                      {group.options
+                        .slice(0, expandedShowMore.includes(group.id) ? group.options.length : 5)
+                        .map((option) => {
+                          const isSelected = selected.includes(option.value)
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() => handleOptionToggle(group.id, option.value, group.type || "checkbox")}
+                              className={cn(
+                                "w-full flex items-center justify-between p-3 rounded-xl transition-all",
+                                isSelected ? "bg-sport/10 text-sport" : "bg-secondary hover:bg-secondary/80 text-primary",
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={cn(
+                                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                                    isSelected ? "border-sport bg-sport" : "border-muted-foreground/30",
+                                  )}
+                                >
+                                  {isSelected && (
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium">{option.label}</span>
                               </div>
-                              <span className="text-sm font-medium">{option.label}</span>
-                            </div>
-                            {option.count !== undefined && (
-                              <span className="text-xs text-muted-foreground">{option.count}</span>
-                            )}
-                          </button>
-                        )
-                      })}
+                              {option.count !== undefined && (
+                                <span className="text-xs text-muted-foreground">{option.count}</span>
+                              )}
+                            </button>
+                          )
+                        })}
 
                       {group.options.length > 5 && (
-                        <button className="w-full text-center py-2 text-sm font-medium text-sport hover:underline">
-                          +{group.options.length - 5} ko'proq
+                        <button
+                          onClick={() => toggleShowMore(group.id)}
+                          className="w-full text-center py-3 text-sm font-semibold text-sport hover:bg-sport/5 rounded-lg transition-colors"
+                        >
+                          {expandedShowMore.includes(group.id)
+                            ? "- Kamroq"
+                            : `+${group.options.length - 5} ko'proq`}
                         </button>
                       )}
                     </div>

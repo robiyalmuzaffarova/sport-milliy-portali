@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/language-context"
 import type { Language } from "@/lib/i18n/translations"
-import { Menu, X, Globe, ShoppingCart, Heart, User, MapPin, LayoutGrid } from "lucide-react"
+import { Menu, X, Globe, ShoppingCart, Heart, User, MapPin, LayoutGrid, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ios/segmented-control"
 import { PillButton } from "@/components/ios/pill-button"
@@ -20,10 +21,29 @@ const languages: { code: Language; label: string; flag: string }[] = [
 
 export function Header() {
   const { language, setLanguage, t } = useLanguage()
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeNav, setActiveNav] = useState("menu")
+  const [isMounted, setIsMounted] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const currentLang = languages.find((l) => l.code === language) || languages[0]
+
+  // Ensure hydration matches - delayed rendering of language-dependent content
+  useEffect(() => {
+    setIsMounted(true)
+    // Check if user is logged in
+    const token = localStorage.getItem("access_token")
+    setIsLoggedIn(!!token)
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("user")
+    setIsLoggedIn(false)
+    setMobileMenuOpen(false)
+    router.push("/")
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-2">
@@ -42,7 +62,7 @@ export function Header() {
               />
             </Link>
 
-            <div className="hidden lg:block">
+            <div className="hidden lg:block" suppressHydrationWarning>
               <SegmentedControl
                 className="bg-white/10"
                 variant="white"
@@ -126,11 +146,28 @@ export function Header() {
                 </Link>
               </div>
 
-              <Link href="/profile" className="hidden md:block">
-                <PillButton variant="filled" size="sm" className="bg-white text-sport hover:bg-white/90 border-0" icon={<User className="w-4 h-4" />}>
-                  {t.nav.login}
-                </PillButton>
-              </Link>
+              {isLoggedIn ? (
+                <Button
+                  onClick={handleLogout}
+                  className="hidden md:block bg-white text-sport hover:bg-white/90 rounded-full px-4"
+                  size="sm"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Chiqish
+                </Button>
+              ) : (
+                <Link href="/login" className="hidden md:block">
+                  <PillButton 
+                    variant="filled" 
+                    size="sm" 
+                    className="bg-white text-sport hover:bg-white/90 border-0" 
+                    icon={<User className="w-4 h-4" />}
+                    suppressHydrationWarning
+                  >
+                    {t.nav.login}
+                  </PillButton>
+                </Link>
+              )}
 
               {/* Mobile Menu Toggle */}
               <Button
@@ -193,16 +230,35 @@ export function Header() {
               </Link>
             </div>
             <div className="mt-4 pt-4 border-t border-white/20 flex gap-2">
-              <Link href="/login" className="flex-1">
-                <PillButton variant="outline" className="w-full text-white border-white/30 hover:bg-white/10">
-                  {t.nav.login}
-                </PillButton>
-              </Link>
-              <Link href="/register" className="flex-1">
-                <PillButton variant="filled" className="w-full bg-white text-sport hover:bg-white/90">
-                  {t.nav.register}
-                </PillButton>
-              </Link>
+              {isLoggedIn ? (
+                <>
+                  <Link href="/profile" className="flex-1">
+                    <PillButton variant="outline" className="w-full text-white border-white/30 hover:bg-white/10">
+                      {t.nav.profile}
+                    </PillButton>
+                  </Link>
+                  <Button
+                    onClick={handleLogout}
+                    className="flex-1 bg-white text-sport hover:bg-white/90 rounded-full"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Chiqish
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="flex-1">
+                    <PillButton variant="outline" className="w-full text-white border-white/30 hover:bg-white/10">
+                      {t.nav.login}
+                    </PillButton>
+                  </Link>
+                  <Link href="/register" className="flex-1">
+                    <PillButton variant="filled" className="w-full bg-white text-sport hover:bg-white/90">
+                      {t.nav.register}
+                    </PillButton>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}

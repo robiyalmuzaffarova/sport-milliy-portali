@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { Mail, Phone, MapPin, Calendar, Award, Trophy, Star, Settings, Edit, Camera, ChevronRight } from "lucide-react"
@@ -9,25 +10,7 @@ import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-const mockUser = {
-  id: "1",
-  name: "Akmal Nurmatov",
-  email: "akmal@example.com",
-  phone: "+998 90 123 45 67",
-  location: "Toshkent, O'zbekiston",
-  joinDate: "Yanvar 2024",
-  bio: "Professional kurash sportchisi. 10+ yillik tajriba. O'zbekiston milliy terma jamoasi a'zosi.",
-  avatar: "/uzbek-male-wrestler-athlete-portrait.jpg",
-  coverImage: "/uzbekistan-sports-stadium-atmospheric-foggy-dramat.jpg",
-  sport: "Kurash",
-  isVerified: true,
-  stats: {
-    followers: 2450,
-    following: 156,
-    achievements: 23,
-  },
-}
+import { usersApi } from "@/lib/api/client"
 
 const mockAchievements = [
   { id: "1", title: "Osiyo o'yinlari - Oltin", year: "2024", icon: Trophy },
@@ -38,7 +21,64 @@ const mockAchievements = [
 
 function ProfileContent() {
   const { t } = useLanguage()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("overview")
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem("access_token")
+        
+        if (!token) {
+          // Redirect to login if no token
+          router.push("/login")
+          return
+        }
+
+        // Fetch current user's profile
+        const response = await usersApi.getMe(token)
+        setCurrentUser(response)
+      } catch (err: any) {
+        console.error("Failed to fetch user profile:", err)
+        setError("Failed to load profile. Please try again.")
+        // Redirect to login on error
+        setTimeout(() => router.push("/login"), 2000)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [router])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-secondary flex items-center justify-center">
+        <Header />
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-sport mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Profil yuklanmoqda...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !currentUser) {
+    return (
+      <div className="min-h-screen bg-secondary flex items-center justify-center">
+        <Header />
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => router.push("/login")} className="bg-sport">
+            Login
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -46,7 +86,7 @@ function ProfileContent() {
 
       {/* Cover Image */}
       <div className="relative h-64 md:h-80">
-        <Image src={mockUser.coverImage || "/placeholder.svg"} alt="Cover" fill className="object-cover" />
+        <Image src={currentUser.avatar_url || "/placeholder.svg"} alt="Cover" fill className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-secondary via-transparent to-transparent" />
         <button className="absolute top-24 right-4 p-2 rounded-xl glass text-white hover:bg-white/20">
           <Camera className="w-5 h-5" />
@@ -59,9 +99,9 @@ function ProfileContent() {
           {/* Avatar */}
           <div className="relative">
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden border-4 border-secondary shadow-xl">
-              <Image src={mockUser.avatar || "/placeholder.svg"} alt={mockUser.name} fill className="object-cover" />
+              <Image src={currentUser.avatar_url || "/placeholder.svg"} alt={currentUser.full_name} fill className="object-cover" />
             </div>
-            {mockUser.isVerified && (
+            {currentUser.is_verified && (
               <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-sport flex items-center justify-center border-4 border-secondary">
                 <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -81,9 +121,9 @@ function ProfileContent() {
           <div className="flex-1">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="font-serif font-bold text-2xl md:text-3xl text-foreground">{mockUser.name}</h1>
+                <h1 className="font-serif font-bold text-2xl md:text-3xl text-foreground">{currentUser.full_name}</h1>
                 <span className="inline-block mt-1 px-3 py-1 rounded-full bg-sport/10 text-sport text-sm font-medium">
-                  {mockUser.sport}
+                  {currentUser.sport_type || "Sport"}
                 </span>
               </div>
               <div className="flex gap-2">
@@ -97,20 +137,20 @@ function ProfileContent() {
               </div>
             </div>
 
-            <p className="text-muted-foreground mt-3 max-w-lg">{mockUser.bio}</p>
+            <p className="text-muted-foreground mt-3 max-w-lg">{currentUser.bio || "Bio not set"}</p>
 
             {/* Quick Stats */}
             <div className="flex gap-6 mt-4">
               <div className="text-center">
-                <div className="font-serif font-bold text-xl text-foreground">{mockUser.stats.followers}</div>
+                <div className="font-serif font-bold text-xl text-foreground">{currentUser.followers_count || 0}</div>
                 <div className="text-xs text-muted-foreground">Kuzatuvchilar</div>
               </div>
               <div className="text-center">
-                <div className="font-serif font-bold text-xl text-foreground">{mockUser.stats.following}</div>
+                <div className="font-serif font-bold text-xl text-foreground">{currentUser.following_count || 0}</div>
                 <div className="text-xs text-muted-foreground">Kuzatilayotganlar</div>
               </div>
               <div className="text-center">
-                <div className="font-serif font-bold text-xl text-foreground">{mockUser.stats.achievements}</div>
+                <div className="font-serif font-bold text-xl text-foreground">{currentUser.achievements_count || 0}</div>
                 <div className="text-xs text-muted-foreground">Yutuqlar</div>
               </div>
             </div>
@@ -158,7 +198,7 @@ function ProfileContent() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="text-card-foreground">{mockUser.email}</p>
+                      <p className="text-card-foreground">{currentUser.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -167,7 +207,7 @@ function ProfileContent() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Telefon</p>
-                      <p className="text-card-foreground">{mockUser.phone}</p>
+                      <p className="text-card-foreground">{currentUser.phone_number || "Not set"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -176,7 +216,7 @@ function ProfileContent() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Manzil</p>
-                      <p className="text-card-foreground">{mockUser.location}</p>
+                      <p className="text-card-foreground">{currentUser.location || "Not set"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -185,7 +225,7 @@ function ProfileContent() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Qo&apos;shilgan</p>
-                      <p className="text-card-foreground">{mockUser.joinDate}</p>
+                      <p className="text-card-foreground">{currentUser.created_at ? new Date(currentUser.created_at).toLocaleDateString() : "Not set"}</p>
                     </div>
                   </div>
                 </div>

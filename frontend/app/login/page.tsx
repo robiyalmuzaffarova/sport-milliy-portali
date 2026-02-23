@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -11,21 +12,51 @@ import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { authApi } from "@/lib/api/client"
 
 function LoginContent() {
   const { t } = useLanguage()
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      // Create FormData for OAuth2
+      const formData = new FormData()
+      formData.append("username", email)
+      formData.append("password", password)
+
+      const response = await authApi.login(formData)
+
+      // Store token and user data
+      if (response.access_token) {
+        localStorage.setItem("access_token", response.access_token)
+        if (response.user) {
+          localStorage.setItem("user", JSON.stringify(response.user))
+        }
+
+        // Redirect to profile
+        router.push("/profile")
+      }
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please try again.")
+      console.error("Login error:", err)
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   return (
@@ -33,7 +64,7 @@ function LoginContent() {
       {/* Left Panel - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <Image
-          src="/uzbekistan-sports-stadium-atmospheric-foggy-dramat.jpg"
+          src="/go.jpg"
           alt="Sport Milliy Portali"
           fill
           className="object-cover"
@@ -41,13 +72,13 @@ function LoginContent() {
         <div className="absolute inset-0 gradient-hero" />
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <Link href="/" className="absolute top-8 left-8 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-sport flex items-center justify-center">
-              <span className="text-white font-serif font-bold text-xl">S</span>
-            </div>
-            <div>
-              <h1 className="font-serif font-bold text-xl text-white">Sport Milliy</h1>
-              <p className="text-xs text-white/70">Portali</p>
-            </div>
+            <Image
+              src="/icon.png"
+              alt="Sport Milliy Portali Logo"
+              width={140}
+              height={140}
+              className="rounded-lg"
+            />
           </Link>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -70,8 +101,8 @@ function LoginContent() {
             <Image
               src="/icon.png"
               alt="Sport Milliy Portali Logo"
-              width={40}
-              height={40}
+              width={60}
+              height={60}
               className="rounded-lg"
               priority
             />
@@ -80,13 +111,19 @@ function LoginContent() {
             </div>
           </Link>
 
-          <div className="glass-card rounded-3xl p-8">
-            <h2 className="font-serif font-bold text-2xl text-card-foreground mb-2">{t.nav.login}</h2>
-            <p className="text-muted-foreground text-sm mb-8">Hisobingizga kiring va davom eting</p>
+          <div className="glass-card rounded-3xl p-8" suppressHydrationWarning>
+            <h2 className="font-serif font-bold text-2xl text-card-foreground mb-2" suppressHydrationWarning>{t.nav.login}</h2>
+            <p className="text-muted-foreground text-sm mb-8" suppressHydrationWarning>Hisobingizga kiring va davom eting</p>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5" suppressHydrationWarning>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" suppressHydrationWarning>Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
@@ -103,8 +140,8 @@ function LoginContent() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Parol</Label>
-                  <Link href="/forgot-password" className="text-sm text-sport hover:underline">
+                  <Label htmlFor="password" suppressHydrationWarning>Parol</Label>
+                  <Link href="/forgot-password" className="text-sm text-sport hover:underline" suppressHydrationWarning>
                     Parolni unutdingizmi?
                   </Link>
                 </div>
@@ -133,6 +170,7 @@ function LoginContent() {
                 type="submit"
                 disabled={isLoading}
                 className="w-full h-12 bg-sport hover:bg-sport/90 text-white rounded-xl font-medium"
+                suppressHydrationWarning
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">
@@ -140,7 +178,7 @@ function LoginContent() {
                     Kirish...
                   </span>
                 ) : (
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2" suppressHydrationWarning>
                     {t.nav.login}
                     <ArrowRight className="w-4 h-4" />
                   </span>
@@ -149,7 +187,7 @@ function LoginContent() {
             </form>
 
             <div className="mt-6 pt-6 border-t border-border text-center">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-sm" suppressHydrationWarning>
                 Hisobingiz yo&apos;qmi?{" "}
                 <Link href="/register" className="text-sport font-medium hover:underline">
                   {t.nav.register}
@@ -165,8 +203,10 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <LanguageProvider>
-      <LoginContent />
-    </LanguageProvider>
+    <div suppressHydrationWarning>
+      <LanguageProvider>
+        <LoginContent />
+      </LanguageProvider>
+    </div>
   )
 }
