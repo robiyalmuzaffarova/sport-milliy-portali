@@ -1,0 +1,211 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: sport-portal-db-prod
+    environment:
+      POSTGRES_USER: ${DB_USER:-sportuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sportpass}
+      POSTGRES_DB: sportdb_prod
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sportuser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sport-network-prod
+    restart: unless-stopped
+    ports:
+      - "5432:5432"  # Remove in production if not needed
+    security_opt:
+      - no-new-privileges:true
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: sport-portal-redis-prod
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-sportpass} --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-sportpass}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sport-network-prod
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: sport-portal-rabbitmq-prod
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-sportuser}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-sportpass}
+    volumes:
+      - rabbitmq_data_prod:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sport-network-prod
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "15672:15672"  # Management UI - remove in production
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sport-portal-backend-prod
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-sportuser}:${DB_PASSWORD:-sportpass}@postgres:5432/sportdb_prod
+      REDIS_URL: redis://:${REDIS_PASSWORD:-sportpass}@redis:6379/0
+      CELERY_BROKER_URL: amqp://${RABBITMQ_USER:-sportuser}:${RABBITMQ_PASSWORD:-sportpass}@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-sportpass}@redis:6379/1
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: "False"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENVIRONMENT: production
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - sport-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sport-portal-celery-worker-prod
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-sportuser}:${DB_PASSWORD:-sportpass}@postgres:5432/sportdb_prod
+      REDIS_URL: redis://:${REDIS_PASSWORD:-sportpass}@redis:6379/0
+      CELERY_BROKER_URL: amqp://${RABBITMQ_USER:-sportuser}:${RABBITMQ_PASSWORD:-sportpass}@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-sportpass}@redis:6379/1
+      DEBUG: "False"
+      ENVIRONMENT: production
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+      - backend
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - sport-network-prod
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # Celery Beat (Scheduler)
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sport-portal-celery-beat-prod
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-sportuser}:${DB_PASSWORD:-sportpass}@postgres:5432/sportdb_prod
+      REDIS_URL: redis://:${REDIS_PASSWORD:-sportpass}@redis:6379/0
+      CELERY_BROKER_URL: amqp://${RABBITMQ_USER:-sportuser}:${RABBITMQ_PASSWORD:-sportpass}@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-sportpass}@redis:6379/1
+      DEBUG: "False"
+      ENVIRONMENT: production
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - sport-network-prod
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sport-portal-frontend-prod
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.yourdomain.com/api/v1}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://yourdomain.com}
+      NODE_ENV: production
+    networks:
+      - sport-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: sport-portal-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - sport-network-prod
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
+  rabbitmq_data_prod:
+    driver: local
+  backend_uploads:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  sport-network-prod:
+    driver: bridge

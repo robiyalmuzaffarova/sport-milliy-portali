@@ -1,0 +1,53 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm ci",
+  "framework": "nextjs",
+  "nodeVersion": "20.x",
+  "env": [
+    {
+      "key": "NEXT_PUBLIC_API_URL",
+      "type": "plaintext",
+      "description": "Backend API URL - must be accessible from browser (e.g., https://api.yourdomain.com/api/v1)"
+    },
+    {
+      "key": "NEXT_PUBLIC_APP_URL",
+      "type": "plaintext",
+      "description": "Frontend app URL (e.g., https://yourdomain.com or https://yourapp.vercel.app)"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/:path*",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "${NEXT_PUBLIC_API_URL}/:path*"
+    }
+  ]
+}
