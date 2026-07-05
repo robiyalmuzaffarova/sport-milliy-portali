@@ -13,69 +13,78 @@ import { formatDateUzbekConsistent } from "@/lib/date-utils"
 
 const newsCategories = ["Barchasi", "Yutuqlar", "Musobaqalar", "Yangiliklar", "Intervyu", "Sport salomatligi"]
 
+const categoryMap: Record<string, string> = {
+  "Yutuqlar": "ACHIEVEMENTS",
+  "Musobaqalar": "COMPETITIONS",
+  "Yangiliklar": "NEWS",
+  "Intervyu": "INTERVIEW",
+  "Sport salomatligi": "HEALTH",
+}
+
+// Dynamic Mock Data - Real news with dynamic information
 const mockNews = [
   {
     id: "1",
-    title: "O'zbekiston terma jamoasi Osiyo o'yinlarida g'alaba qozondi",
-    excerpt: "Bizning sportchilarimiz Osiyo o'yinlarida 15 ta oltin medal bilan tarixiy natija ko'rsatdi.",
-    image: "/kurash-wrestling-championship-uzbekistan.jpg",
-    date: "15 Yanvar, 2026",
+    title: "Diyora Keldiyorova Osiyo chempionatida podium qazo qildi",
+    excerpt: "O'zbekiston kurash federatsiyasi tanloviga kirgan yosh sportchi Osiyo o'yinlarida yutuq qozondi.",
+    image: "/news2.jpg",
+    date: "24 Fevral, 2026",
     category: "Yutuqlar",
   },
   {
     id: "2",
-    title: "Yangi sport akademiyasi ochildi",
-    excerpt: "Toshkent shahrida zamonaviy sport akademiyasi o'z eshiklarini ochdi.",
-    image: "/modern-sports-academy-building-tashkent.jpg",
-    date: "12 Yanvar, 2026",
+    title: "Toshkent shahrida sport texnologiyasi markazida yangi qismni ochariladi",
+    excerpt: "500 dan ortiq yoshlar uchun talim dasturlari va sport dasturlari qoplanadigan markazing yangi qismi.",
+    image: "/news.jpg",
+    date: "22 Fevral, 2026",
     category: "Yangiliklar",
   },
   {
     id: "3",
-    title: "Kurash bo'yicha jahon chempionati boshlandi",
-    excerpt: "O'zbekiston milliy sport turi bo'yicha jahon chempionati o'tkazilmoqda.",
-    image: "/kurash-wrestling-championship-uzbekistan.jpg",
-    date: "10 Yanvar, 2026",
+    title: "Jahon kups kurash chempionatiga O'zbekiston delegatsiyasi tayyorlanmoqda",
+    excerpt: "200 dan ortiq respublika milliy sportchilari selektor tomonidan jahon chempionatiga tayinlandi.",
+    image: "/news3.jpg",
+    date: "20 Fevral, 2026",
     category: "Musobaqalar",
   },
   {
     id: "4",
-    title: "Boks bo'yicha yangi chempion paydo bo'ldi",
-    excerpt: "Rustam Xoliqov jahon chempionatida oltin medal qo'lga kiritdi.",
-    image: "/kurash-wrestling-training-gym.jpg",
-    date: "8 Yanvar, 2026",
-    category: "Yutuqlar",
+    title: "Firdavs Xasanov: Iqtidorli yoshlar respublikaning faxri",
+    excerpt: "Boks bo'yicha jahon chempioni Firdavs Xasanov iqtidorli yoshlarning rivozatlanishi haqida holosa berdi.",
+    image: "/news6.jpg",
+    date: "18 Fevral, 2026",
+    category: "Intervyu",
   },
   {
     id: "5",
-    title: "Sport va sog'lom turmush tarzi",
-    excerpt: "Mutaxassislar sport bilan shug'ullanishning foydali tomonlarini tushuntiradi.",
-    image: "/basketball.jpg",
-    date: "5 Yanvar, 2026",
+    title: "Sport va sog'liq: Doktorlar nimaligini maslahat beradi",
+    excerpt: "Tibbiyot olimlar aytdiki, kuniga 30 minut sport bilan shug'ullanish og'ir kasalliklardan himoya qiladi.",
+    image: "/news4.jpg",
+    date: "16 Fevral, 2026",
     category: "Sport salomatligi",
   },
   {
     id: "6",
-    title: "Tennis bo'yicha yangi iste'dod",
-    excerpt: "16 yoshli Dilnoza xalqaro turnirda g'olib chiqdi.",
-    image: "/athlete-face-2.jpg",
-    date: "3 Yanvar, 2026",
+    title: "Mavluda Abdullayeva xalqaro tennis turnirida g'olib chiqdi",
+    excerpt: "24 yoshli tennis oyunchisi Samarqand qo'lningida xalqaro tanlovda yutuq qozondi.",
+    image: "/news7.jpg",
+    date: "14 Fevral, 2026",
     category: "Yutuqlar",
   },
   {
     id: "7",
-    title: "Futbol ligasi yangi mavsumga tayyorlanmoqda",
-    excerpt: "O'zbekiston futbol ligasi yangi mavsumga start beradi.",
-    image: "/basketball.jpg",
-    date: "1 Yanvar, 2026",
+    title: "O'zbekiston futbol ligasi yangi iyunida savoziyo o'yinlarni boshlamoqda",
+    excerpt: "To'qqizta klub orasida mashhar turnir boshlanadi. Birinchi o'yinlar 1-mart kuni bo'lib o'tadi.",
+    image: "/news1.jpg",
+    date: "12 Fevral, 2026",
     category: "Musobaqalar",
   },
   {
     id: "8",
-    title: "Olimpiya o'yinlariga tayyorgarlik davom etmoqda",
-    excerpt: "Sportchilarimiz 2028 Los-Anjeles Olimpiadasiga tayyorlanmoqda.",
-    image: "/kurash-wrestling-training-gym.jpg",
-    date: "28 Dekabr, 2025",
+    title: "Paris-2024 Olimpiadasiga O'zbekiston delegatsiyasi konusultsiyasini tugatdi",
+    excerpt: "Sportchilarimiz quyidagi yo'z-jami olimpik meqoniblari uchun tayyorlanmoqda yoki keltirilmoqda.",
+    image: "/news5.jpg",
+    date: "10 Fevral, 2026",
     category: "Yangiliklar",
   },
 ]
@@ -126,8 +135,13 @@ function NewsContent() {
     fetchNews()
   }, [isMounted])
 
-  const filteredNews = activeCategory === "Barchasi" ? news : news.filter((n) => n.category === activeCategory)
-
+  const filteredNews = activeCategory === "Barchasi"
+  ? news
+  : news.filter((n) => {
+      const backendCategory = categoryMap[activeCategory]
+      return n.category === backendCategory || n.category === activeCategory
+    })
+    
   return (
     <div className="min-h-screen bg-secondary">
       <Header />

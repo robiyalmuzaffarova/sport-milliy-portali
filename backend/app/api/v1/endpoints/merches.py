@@ -31,6 +31,7 @@ async def get_merches_list(
         limit: int = Query(10, ge=1, le=100),
         search: Optional[str] = None,
         is_available: Optional[bool] = None,
+        filter: Optional[str] = None,  # "discount" or "new"
         db: AsyncSession = Depends(get_db)
 ):
     query = select(Merch).options(selectinload(Merch.owner))
@@ -46,14 +47,21 @@ async def get_merches_list(
             (Merch.brand.ilike(f"%{search}%"))
         )
 
+    # NEW: filter for discount or new arrivals
+    if filter == "discount":
+        query = query.where(Merch.discount_percent > 0).order_by(Merch.discount_percent.desc())
+    elif filter == "new":
+        query = query.where(Merch.is_new == True).order_by(Merch.created_at.desc())
+    else:
+        query = query.order_by(Merch.created_at.desc())
+
     # Get total count
     count_query = select(func.count()).select_from(query.subquery())
     total = await db.scalar(count_query)
 
-    # Apply pagination and ordering
-    query = query.order_by(Merch.created_at.desc()).offset(skip).limit(limit)
+    # Apply pagination
+    query = query.offset(skip).limit(limit)
 
-    # Execute query
     result = await db.execute(query)
     merches = result.scalars().all()
 

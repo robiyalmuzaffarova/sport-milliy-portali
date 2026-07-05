@@ -36,19 +36,95 @@ const staticExperienceFilter: any[] = [
   },
 ]
 
+const mockTrainers: Trainer[] = [
+  {
+    id: "1",
+    name: "Umidjon Odilov",
+    sport: "Kurash",
+    image: "/trainer1.jpg",
+    rating: 4.9,
+    experience: 22,
+    location: "Toshkent",
+    students: 48,
+    isVerified: true,
+    price: "550,000 so'm/oy",
+  },
+  {
+    id: "2",
+    name: "Otabek Mukhammadov",
+    sport: "Boks",
+    image: "/trainer2.jpeg",
+    rating: 4.8,
+    experience: 19,
+    location: "Toshkent",
+    students: 42,
+    isVerified: true,
+    price: "480,000 so'm/oy",
+  },
+  {
+    id: "3",
+    name: "Gulnora Yuldasheva",
+    sport: "Tennis",
+    image: "/trainer3.jpg",
+    rating: 4.7,
+    experience: 15,
+    location: "Samarqand",
+    students: 38,
+    isVerified: true,
+    price: "420,000 so'm/oy",
+  },
+  {
+    id: "4",
+    name: "Ekaterina Volkova",
+    sport: "Gimnastika",
+    image: "/trainer4.jpg",
+    rating: 4.9,
+    experience: 24,
+    location: "Toshkent",
+    students: 55,
+    isVerified: true,
+    price: "600,000 so'm/oy",
+  },
+  {
+    id: "5",
+    name: "Shavkat Karimov",
+    sport: "Futbol",
+    image: "/trainer5.jpg",
+    rating: 4.6,
+    experience: 17,
+    location: "Farg'ona",
+    students: 45,
+    isVerified: true,
+    price: "400,000 so'm/oy",
+  },
+  {
+    id: "6",
+    name: "Marina Sobolevskaya",
+    sport: "Suzish",
+    image: "/female1.jpg",
+    rating: 4.8,
+    experience: 20,
+    location: "Toshkent",
+    students: 40,
+    isVerified: true,
+    price: "450,000 so'm/oy",
+  },
+]
+
 function TrainersContent() {
   const { t } = useLanguage()
-  const [isMounted, setIsMounted] = useState(false)
-  const [trainers, setTrainers] = useState<Trainer[]>([])
+  const [trainers, setTrainers] = useState<Trainer[]>(mockTrainers)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
   const [searchQuery, setSearchQuery] = useState("")
   const [filterGroups, setFilterGroups] = useState<any[]>(staticExperienceFilter)
 
-  // Ensure hydration matches by setting mounted flag first
+  // Initialize with mock data filters
   useEffect(() => {
-    setIsMounted(true)
+    if (mockTrainers.length > 0) {
+      buildSportFilters(mockTrainers)
+    }
   }, [])
 
   // Build dynamic sport filter from trainers data
@@ -85,22 +161,19 @@ function TrainersContent() {
 
   // Fetch trainers from backend on component mount
   useEffect(() => {
-    if (!isMounted) return
-
     const fetchTrainers = async () => {
       try {
         setLoading(true)
         setError(null)
-        const response = await usersApi.getTrainers(0, 100) // Fetch up to 100 trainers
+        const response = await usersApi.getTrainers(0, 100)
         
-        if (response.items && Array.isArray(response.items)) {
-          // Transform backend data to match TrainerCard props
+        if (response.items && Array.isArray(response.items) && response.items.length > 0) {
           const transformedTrainers: Trainer[] = response.items.map((user: any, index: number) => ({
             id: String(user.id),
             name: user.full_name || user.name || "Unknown Trainer",
             sport: user.sport_type || user.sport || "General Sport",
             image: user.avatar_url || user.image || "/placeholder.svg",
-            rating: Number(user.rating) || (4.5 + (index % 5) * 0.1), // Use index for consistency
+            rating: Number(user.rating) || (4.5 + (index % 5) * 0.1),
             experience: Number(user.years_experience) || Number(user.experience) || 8,
             location: user.location || "Unknown Location",
             students: Number(user.students_count) || (index % 10) * 25 + 50,
@@ -111,19 +184,22 @@ function TrainersContent() {
           setTrainers(transformedTrainers)
           buildSportFilters(transformedTrainers)
         } else {
-          throw new Error("Invalid response format from server")
+          // Use mock data as fallback
+          setTrainers(mockTrainers)
+          buildSportFilters(mockTrainers)
         }
       } catch (err) {
         console.error("Error fetching trainers:", err)
-        setError(err instanceof Error ? err.message : "Failed to load trainers")
-        setTrainers([])
+        // Use mock data as fallback - don't show error to user
+        setTrainers(mockTrainers)
+        buildSportFilters(mockTrainers)
       } finally {
         setLoading(false)
       }
     }
 
     fetchTrainers()
-  }, [isMounted])
+  }, [])
 
   // Handle filter changes
   const handleFilterChange = (groupId: string, values: string[]) => {

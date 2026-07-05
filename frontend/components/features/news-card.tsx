@@ -18,15 +18,20 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ id, title, excerpt, image, date, category, className }: NewsCardProps) {
-  // Normalize image source: if the stored `image` is not an absolute URL,
-  // try to resolve it against the backend uploads path so both full URLs
-  // and stored filenames/slugs work.
+  // Normalize image source: handle public folder images, backend uploads, and external URLs
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
   const API_BASE = API_URL.replace(/\/api\/v1\/?$/i, '')
 
   let src = image || '/placeholder.svg'
+  
+  // Check if it's an absolute URL (http, https, or data)
   const isAbsolute = /^(https?:)?\/\//i.test(src) || src.startsWith('data:')
-  if (!isAbsolute) {
+  
+  // If it starts with / and is a common image type, treat as public asset
+  const isPublicAsset = src.startsWith('/') && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(src)
+
+  // Only transform to API path if it's not absolute and not a public asset
+  if (!isAbsolute && !isPublicAsset) {
     if (src.startsWith('/')) src = `${API_BASE}${src}`
     else src = `${API_BASE}/uploads/${src}`
   }

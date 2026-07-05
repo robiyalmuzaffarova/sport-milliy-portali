@@ -16,6 +16,9 @@ class Merch(BaseModel):
     is_available = Column(Boolean, default=True)
     category = Column(String(50), default="equipment", nullable=False)  # clothing, equipment, accessories, footwear
     
+    discount_percent = Column(Integer, default=0, nullable=False)  
+    is_new = Column(Boolean, default=False, nullable=False)  
+
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     owner = relationship("User", back_populates="merches")
     

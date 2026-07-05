@@ -141,7 +141,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: sport-portal-frontend
-    command: npm run dev
+    command: ["pnpm", "start"]
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -157,7 +157,7 @@ services:
     networks:
       - sport-network
     restart: unless-stopped
-
+    
   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine

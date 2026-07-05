@@ -20,21 +20,46 @@ const languages: { code: Language; label: string; flag: string }[] = [
 ]
 
 export function Header() {
+  const [cartCount, setCartCount] = useState(0)
   const { language, setLanguage, t } = useLanguage()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeNav, setActiveNav] = useState("menu")
+
+  const handleNavChange = (value: string) => {
+    setActiveNav(value)
+    if (value === "menu") {
+      router.push("/")
+    } else if (value === "map") {
+      router.push("/map")
+    }
+  }
+
   const [isMounted, setIsMounted] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const currentLang = languages.find((l) => l.code === language) || languages[0]
 
-  // Ensure hydration matches - delayed rendering of language-dependent content
   useEffect(() => {
     setIsMounted(true)
-    // Check if user is logged in
     const token = localStorage.getItem("access_token")
     setIsLoggedIn(!!token)
+
+    // Fetch real cart count
+    if (token) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/cart/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(r => r.json())
+        .then(data => setCartCount(data.total || 0))
+        .catch(() => setCartCount(0))
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setActiveNav(window.location.pathname === "/map" ? "map" : "menu")
+    }
   }, [])
 
   const handleLogout = () => {
@@ -63,16 +88,30 @@ export function Header() {
             </Link>
 
             <div className="hidden lg:block" suppressHydrationWarning>
-              <SegmentedControl
-                className="bg-white/10"
-                variant="white"
-                options={[
-                  { value: "menu", label: t.nav.home, icon: <LayoutGrid className="w-4 h-4" /> },
-                  { value: "map", label: "Xarita", icon: <MapPin className="w-4 h-4" /> },
-                ]}
-                value={activeNav}
-                onChange={setActiveNav}
-              />
+              <div className="hidden lg:block" suppressHydrationWarning>
+                <div className="hidden lg:flex items-center gap-1 p-1 bg-white/10 rounded-xl">
+                  <Link
+                    href="/"
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeNav === "menu" ? "bg-white text-sport" : "text-white/70 hover:text-white"
+                    }`}
+                    onClick={() => setActiveNav("menu")}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    {t.nav.home}
+                  </Link>
+                  <Link
+                    href="/map"
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeNav === "map" ? "bg-white text-sport" : "text-white/70 hover:text-white"
+                    }`}
+                    onClick={() => setActiveNav("map")}
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Xarita
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* Right Section */}
@@ -139,9 +178,11 @@ export function Header() {
                 <Link href="/carts">
                   <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-white/10 relative">
                     <ShoppingCart className="w-4 h-4 text-white" />
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white text-[10px] text-sport rounded-full flex items-center justify-center font-bold">
-                      3
-                    </span>
+                    {cartCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white text-[10px] text-sport rounded-full flex items-center justify-center font-bold">
+                        {cartCount}
+                      </span>
+                    )}
                   </Button>
                 </Link>
               </div>

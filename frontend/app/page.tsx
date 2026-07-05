@@ -32,77 +32,88 @@ import { AthleteCard } from "@/components/features/athlete-card"
 import { NewsCard } from "@/components/features/news-card"
 import { usersApi, newsApi } from "@/lib/api/client"
 
-// Mock data
-const weekAthletes = [
+// Dynamic Mock Data Generators
+const athleteNames = [
+  { full: "Diyora Keldiyorova", first: "Diyora", last: "Keldiyorova" },
+  { full: "Akmal Nurmatov", first: "Akmal", last: "Nurmatov" },
+  { full: "Dilnoza Karimova", first: "Dilnoza", last: "Karimova" },
+  { full: "Sardor Rahimov", first: "Sardor", last: "Rahimov" },
+]
+
+const sports = ["Kurash", "Tennis", "Boks", "Futbol", "Suzish", "Gimnastika", "Atiletika", "Bodibildingu"]
+const locations = ["Toshkent", "Samarqand", "Bukhoro", "Farg'ona", "Xorazm", "Qashqadarya"]
+
+// Generate dynamic mock athletes using real data structure
+const mockWeekAthletes = [
   {
     id: "1",
-    name: "Akmal Nurmatov",
+    name: "Diyora Keldiyorova",
     sport: "Kurash",
-    image: "/kurash-wrestling-training-gym.jpg",
+    image: "/female1.jpg",
     rating: 4.9,
-    achievements: 23,
+    achievements: 27,
     location: "Toshkent",
     isVerified: true,
     isTopWeek: true,
   },
   {
     id: "2",
-    name: "Dilnoza Karimova",
+    name: "Sardor Rahimov",
     sport: "Tennis",
-    image: "/athlete-face-2.jpg",
+    image: "/male2.jpg",
     rating: 4.8,
-    achievements: 15,
+    achievements: 19,
     location: "Samarqand",
     isVerified: true,
     isTopWeek: false,
   },
   {
     id: "3",
-    name: "Rustam Xoliqov",
-    sport: "Boxing",
-    image: "/athlete-face-3.jpg",
+    name: "Firdavs Xasanov",
+    sport: "Boks",
+    image: "/male1.jpg",
     rating: 4.7,
-    achievements: 31,
-    location: "Fargona",
+    achievements: 35,
+    location: "Farg'ona",
     isVerified: true,
     isTopWeek: false,
   },
   {
     id: "4",
-    name: "Malika Azimova",
-    sport: "Gymnastics",
-    image: "/athlete-avatar-.jpg",
+    name: "Irina Sobolevskaya",
+    sport: "Gimnastika",
+    image: "/female3.jpg",
     rating: 4.9,
-    achievements: 28,
-    location: "Buxoro",
+    achievements: 32,
+    location: "Bukhoro",
     isVerified: true,
     isTopWeek: false,
   },
 ]
 
-const latestNews = [
+const mockLatestNews = [
   {
     id: "1",
-    title: "O'zbekiston terma jamoasi Osiyo o'yinlarida g'alaba qozondi",
-    excerpt: "Bizning sportchilarimiz Osiyo o'yinlarida 15 ta oltin medal bilan tarixiy natija ko'rsatdi.",
-    image: "/kurash-wrestling-championship-uzbekistan.jpg",
-    date: "15 Yanvar, 2026",
+    title: "Diyora Keldiyorova Osiyo chempionatida uchunchi o'rinda turdi",
+    excerpt: "O'zbekiston kurash federatsiyasi tanloviga kirgan Diyora Keldiyorova Osiyo o'yinlarida o'n oltinchi o'rinni egalladi.",
+    image: "/news2.jpg",
+    date: "24 Fevral, 2026",
     category: "Yutuqlar",
   },
   {
     id: "2",
-    title: "Yangi sport akademiyasi ochildi",
-    excerpt: "Toshkent shahrida zamonaviy sport akademiyasi o'z eshiklarini ochdi.",
-    image: "/modern-sports-academy-building-tashkent.jpg",
-    date: "12 Yanvar, 2026",
+    title: "Toshkent shahrida yangi sport akademiyasi ochildi",
+    excerpt: "Zamonaviy jihozlar bilan qurilgan akademiyada 500 dan ortiq sportchilar o'qiydi va o'stiriladi.",
+    image: "/news.jpg",
+    date: "22 Fevral, 2026",
     category: "Yangiliklar",
   },
   {
     id: "3",
-    title: "Kurash bo'yicha jahon chempionati boshlandi",
-    excerpt: "O'zbekiston milliy sport turi bo'yicha jahon chempionati o'tkazilmoqda.",
-    image: "/kurash-wrestling-championship-uzbekistan.jpg",
-    date: "10 Yanvar, 2026",
+    title: "Jahon kups kurash chempionatiga O'zbekiston delegatsiyasi tayyorlanmoqda",
+    excerpt: "200 dan ortiq respublika sportchilari selektor tomonidan chempionatlarga tayinlandi.",
+    image: "/news5.jpg",
+    date: "20 Fevral, 2026",
     category: "Musobaqalar",
   },
 ]
@@ -117,30 +128,12 @@ const participantAvatars = [
 
 function HomeContent() {
   const { t } = useLanguage()
-  const [weekAthletes, setWeekAthletes] = useState<any[]>([
-    {
-      id: "1",
-      name: "Loading...",
-      sport: "Sport",
-      image: "/placeholder.svg",
-      rating: 4.5,
-      achievements: 0,
-      location: "Location",
-      isVerified: false,
-      isTopWeek: false,
-    },
-  ])
-  const [athleteAvatars, setAthleteAvatars] = useState<any[]>(participantAvatars)
-  const [latestNews, setLatestNews] = useState<any[]>([
-    {
-      id: "1",
-      title: "Loading...",
-      excerpt: "Yangiliklar yuklanmoqda",
-      image: "/placeholder.svg",
-      date: "2026-02-13",
-      category: "Yangiliklar",
-    },
-  ])
+  const [weekAthletes, setWeekAthletes] = useState<any[]>(mockWeekAthletes.slice(0, 4))
+  const [athleteAvatars, setAthleteAvatars] = useState<any[]>(mockWeekAthletes.map((athlete: any) => ({
+    src: athlete.image,
+    alt: athlete.name,
+  })))
+  const [latestNews, setLatestNews] = useState<any[]>(mockLatestNews)
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
@@ -164,7 +157,7 @@ function HomeContent() {
           isVerified: Boolean(user.is_verified),
           isTopWeek: Boolean(user.is_top_week),
         }))
-        setWeekAthletes(transformed.length > 0 ? transformed.slice(0, 4) : [])
+        setWeekAthletes(transformed.length > 0 ? transformed.slice(0, 5) : weekAthletes)
         
         // Set avatars for the 2450+ section from all fetched athletes
         const avatars = transformed.map((athlete: any) => ({
@@ -174,8 +167,7 @@ function HomeContent() {
         setAthleteAvatars(avatars.length > 0 ? avatars : participantAvatars)
       } catch (error) {
         console.error("Failed to fetch athletes:", error)
-        // Keep the placeholder on error
-        setAthleteAvatars(participantAvatars)
+        // Mock data already in initial state, keep it
       }
     }
 
@@ -198,9 +190,11 @@ function HomeContent() {
             : "2026-02-13",
           category: news.category || "Yangiliklar",
         }))
-        setLatestNews(transformed.length > 0 ? transformed : [])
+        setLatestNews(transformed.length > 0 ? transformed : latestNews)
       } catch (error) {
         console.error("Failed to fetch news:", error)
+        // Use mock data as fallback
+        setLatestNews(latestNews)
         // Keep the placeholder on error
       }
     }

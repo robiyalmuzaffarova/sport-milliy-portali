@@ -1,5 +1,6 @@
 "use client"
-
+import Link from "next/link"
+import { merchApi, cartApi } from "@/lib/api/client"
 import { motion, AnimatePresence } from "framer-motion"
 import { ShoppingBag, Percent, LayoutGrid, List, Sparkles, Loader2 } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
@@ -9,88 +10,89 @@ import { IOSFilterPanel } from "@/components/ios/ios-filter-panel"
 import { MerchCard } from "@/components/features/merch-card"
 import { SegmentedControl } from "@/components/ios/segmented-control"
 import { PillButton } from "@/components/ios/pill-button"
-import { BentoCard } from "@/components/ios/bento-card"
 import { useEffect, useState } from "react"
-import { merchApi } from "@/lib/api/client"
 
 const mockMerch = [
   {
     id: "1",
-    title: "Kurash sport formasi",
-    description: "Professional kurash mashqlari uchun maxsus forma",
+    title: "Diyora Kurash Forması - Professional",
+    description: "Diyora Keldiyorova tomonidan tavsya qilingan professional kurash forması",
     image: "/kurash-sport-uniform-merchandise-uzbekistan.jpg",
-    price: 450000,
-    originalPrice: 550000,
-    rating: 4.8,
-    soldCount: 124,
-    ownerName: "Akmal Nurmatov",
+    price: 485000,
+    originalPrice: 570000,
+    rating: 4.9,
+    soldCount: 156,
+    ownerName: "Diyora Keldiyorova",
     ownerImage: "/uzbek-male-wrestler-athlete-portrait.jpg",
     inStock: true,
     category: "clothing",
   },
   {
     id: "2",
-    title: "Tennis raketi Pro",
-    description: "Professional darajadagi tennis raketi",
+    title: "Mavluda Tennis Raketi Premium",
+    description: "Xalqaro turnirlar uchun professional darajadagi tennis raketi",
     image: "/professional-tennis-racket-merchandise.jpg",
-    price: 1200000,
+    price: 1350000,
+    originalPrice: 1600000,
     rating: 4.9,
-    soldCount: 67,
-    ownerName: "Dilnoza Karimova",
+    soldCount: 87,
+    ownerName: "Mavluda Abdullayeva",
     ownerImage: "/uzbek-female-tennis-player-portrait.jpg",
     inStock: true,
     category: "equipment",
   },
   {
     id: "3",
-    title: "Boxing qo'lqoplari",
-    description: "Professional boxing mashqlari uchun qo'lqoplar",
+    title: "Firdavs Boks Botimlari Elite",
+    description: "Jahon chempioni Firdavs Xasanov tomonidan tavsya qilingan professional boks botimlari",
     image: "/boxing-gloves-merchandise-red.jpg",
-    price: 380000,
-    originalPrice: 450000,
-    rating: 4.7,
-    soldCount: 89,
-    ownerName: "Rustam Xoliqov",
+    price: 420000,
+    originalPrice: 510000,
+    rating: 4.8,
+    soldCount: 124,
+    ownerName: "Firdavs Xasanov",
     ownerImage: "/uzbek-male-boxer-athlete-portrait.jpg",
     inStock: true,
     category: "accessories",
   },
   {
     id: "4",
-    title: "Sport sumka Premium",
-    description: "Katta sig'imli sport sumkasi",
+    title: "Olimpik Sport Sumkasi Deluxe",
+    description: "Maksimal sig'imli va zamonaviy dizayning sport sumkasi",
     image: "/premium-sport-bag-merchandise-black.jpg",
-    price: 290000,
-    rating: 4.6,
-    soldCount: 203,
-    ownerName: "Malika Azimova",
+    price: 325000,
+    originalPrice: 420000,
+    rating: 4.7,
+    soldCount: 287,
+    ownerName: "Irina Sobolevskaya",
     ownerImage: "/uzbek-female-gymnast-athlete-portrait.jpg",
     inStock: true,
     category: "accessories",
   },
   {
     id: "5",
-    title: "Futbol to'pi Professional",
-    description: "FIFA standartlariga mos futbol to'pi",
+    title: "FIFA Futbol To'pi Official",
+    description: "Xalqaro standartlarda FIFA sertifikatsiyali futbol to'pi",
     image: "/professional-football-ball-merchandise.jpg",
-    price: 180000,
-    rating: 4.5,
-    soldCount: 312,
-    ownerName: "Jamshid Raximov",
+    price: 215000,
+    originalPrice: 280000,
+    rating: 4.6,
+    soldCount: 398,
+    ownerName: "Shavkat Karimov",
     ownerImage: "/uzbek-male-football-player-portrait.jpg",
-    inStock: false,
+    inStock: true,
     category: "equipment",
   },
   {
     id: "6",
-    title: "Suzish ko'zoynaklari",
-    description: "Anti-fog texnologiyali suzish ko'zoynaklari",
+    title: "Premium Suzish Kozynak HD",
+    description: "Anti-fog HD linzali professional suzish ko'zynaklari",
     image: "/swimming-goggles-merchandise-professional.jpg",
-    price: 95000,
-    originalPrice: 120000,
+    price: 125000,
+    originalPrice: 165000,
     rating: 4.8,
-    soldCount: 178,
-    ownerName: "Nilufar Saidova",
+    soldCount: 243,
+    ownerName: "Marina Sobolevskaya",
     ownerImage: "/uzbek-female-swimmer-athlete-portrait.jpg",
     inStock: true,
     category: "accessories",
@@ -132,41 +134,61 @@ function MerchesContent() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function loadMerch() {
-      try {
-        console.log("🔄 [MERCHES PAGE] Fetching merchandise from API...")
-        const data = await merchApi.getAll(0, 50)
-        console.log("✅ [MERCHES PAGE] API Response:", data)
-        console.log("📊 [MERCHES PAGE] Number of items:", data.items?.length || 0)
-        
-        const mapped = data.items.map((m: any) => ({
-          id: m.id.toString(),
-          title: m.name,
-          description: m.description,
-          image: m.image_url || "/kurash-sport-uniform-merchandise-uzbekistan.jpg",
-          price: m.price,
-          originalPrice: m.price * 1.2, // Simulated
-          rating: 4.5 + (m.id % 5) / 10,
-          soldCount: Math.floor((m.id * 13) % 100),
-          ownerName: m.owner?.full_name || "Sportchi",
-          ownerImage: m.owner?.avatar_url || "/uzbek-male-wrestler-athlete-portrait.jpg",
-          inStock: m.stock > 0,
-          category: m.category || m.type || "equipment", // Get category from API or default to equipment
-        }))
-        console.log("🗺️ [MERCHES PAGE] Mapped merchandise:", mapped)
-        
-        setMerchItems(mapped.length > 0 ? mapped : mockMerch)
-        console.log("✨ [MERCHES PAGE] Using real data:", mapped.length > 0)
-      } catch (error) {
-        console.error("❌ [MERCHES PAGE] Failed to load merch:", error)
-        setMerchItems(mockMerch)
-        console.log("⚠️ [MERCHES PAGE] Falling back to mock data")
-      } finally {
-        setIsLoading(false)
-      }
+  async function loadMerch() {
+    try {
+      console.log("🔄 [MERCHES PAGE] Fetching merchandise from API...")
+      const data = await merchApi.getAll(0, 50)
+      console.log("✅ [MERCHES PAGE] API Response:", data)
+      console.log("📊 [MERCHES PAGE] Number of items:", data.items?.length || 0)
+      
+      const mapped = data.items.map((m: any) => ({
+        id: m.id.toString(),
+        title: m.name,
+        description: m.description,
+        image: m.image_url || "/kurash-sport-uniform-merchandise-uzbekistan.jpg",
+        price: m.discount_percent > 0
+          ? Math.round(m.price * (1 - m.discount_percent / 100))
+          : m.price,
+        originalPrice: m.discount_percent > 0 ? m.price : undefined,
+        rating: 4.5 + (m.id % 5) / 10,
+        soldCount: Math.floor((m.id * 13) % 100),
+        ownerName: m.owner?.full_name || "Sportchi",
+        ownerImage: m.owner?.avatar_url || "/uzbek-male-wrestler-athlete-portrait.jpg",
+        inStock: m.stock > 0,
+        category: m.category || m.type || "equipment",
+      }))
+
+      console.log("🗺️ [MERCHES PAGE] Mapped merchandise:", mapped)
+      setMerchItems(mapped)
+      console.log("✨ [MERCHES PAGE] Using real data:", mapped.length > 0)
+    } catch (error) {
+      console.error("❌ [MERCHES PAGE] Failed to load merch:", error)
+      setMerchItems(mockMerch)
+      console.log("⚠️ [MERCHES PAGE] Falling back to mock data")
+    } finally {
+      setIsLoading(false)
     }
-    loadMerch()
-  }, [])
+  }
+
+  async function loadFavorites() {
+    const token = localStorage.getItem("access_token")
+    if (!token) return
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/favorites`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      )
+      const data = await res.json()
+      const likedIds = (data.items || []).map((item: any) => String(item.merch_id))
+      setLikedItems(likedIds)
+    } catch (error) {
+      console.error("Failed to load favorites:", error)
+    }
+  }
+
+  loadMerch()
+  loadFavorites()
+}, [])
 
   const filteredItems = merchItems.filter((item) => {
     // Search filter
@@ -232,32 +254,31 @@ function MerchesContent() {
 
           {/* Promo Cards */}
           <div className="grid md:grid-cols-2 gap-4 mt-8">
-            <BentoCard
-              title="50% gacha chegirma"
-              description="Tanlangan mahsulotlarga maxsus aksiya"
-              icon={<Percent className="w-6 h-6" />}
-              variant="warm"
-              size="md"
-            >
-              <div className="mt-3">
-                <PillButton size="sm" className="bg-white text-warm hover:bg-white/90">
-                  Ko'rish
-                </PillButton>
+            <Link href="/merches/discount">
+              <div className="p-6 rounded-3xl gradient-warm text-white cursor-pointer">
+                <Percent className="w-6 h-6 mb-4" />
+                <h3 className="font-semibold text-lg">50% gacha chegirma</h3>
+                <p className="mt-1.5 opacity-70 text-sm">Tanlangan mahsulotlarga maxsus aksiya</p>
+                <div className="mt-3">
+                  <span className="inline-flex items-center px-4 py-2 rounded-full bg-white text-warm text-sm font-medium">
+                    Ko'rish
+                  </span>
+                </div>
               </div>
-            </BentoCard>
-            <BentoCard
-              title="Yangi kelganlar"
-              description="Eng so'nggi sport jihozlari kolleksiyasi"
-              icon={<Sparkles className="w-6 h-6" />}
-              variant="sport"
-              size="md"
-            >
-              <div className="mt-3">
-                <PillButton size="sm" className="bg-white text-sport hover:bg-white/90">
-                  Ko'rish
-                </PillButton>
+            </Link>
+
+            <Link href="/merches/new">
+              <div className="p-6 rounded-3xl gradient-sport text-white cursor-pointer">
+                <Sparkles className="w-6 h-6 mb-4" />
+                <h3 className="font-semibold text-lg">Yangi kelganlar</h3>
+                <p className="mt-1.5 opacity-70 text-sm">Eng so'nggi sport jihozlari kolleksiyasi</p>
+                <div className="mt-3">
+                  <span className="inline-flex items-center px-4 py-2 rounded-full bg-white text-sport text-sm font-medium">
+                    Ko'rish
+                  </span>
+                </div>
               </div>
-            </BentoCard>
+            </Link>
           </div>
         </div>
       </section>
@@ -354,8 +375,43 @@ function MerchesContent() {
                         <MerchCard
                           {...item}
                           isLiked={likedItems.includes(item.id)}
-                          onToggleLike={() => toggleLike(item.id)}
-                          onAddToCart={() => console.log("Add to cart:", item.id)}
+                          onToggleLike={async () => {
+                            const token = localStorage.getItem("access_token")
+                            if (!token) {
+                              window.location.href = "/login"
+                              return
+                            }
+                            try {
+                              const res = await fetch(
+                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/favorites/toggle/${item.id}`,
+                                {
+                                  method: 'POST',
+                                  headers: { 'Authorization': `Bearer ${token}` }
+                                }
+                              )
+                              const data = await res.json()
+                              if (data.status === "liked") {
+                                setLikedItems(prev => [...prev, item.id])
+                              } else {
+                                setLikedItems(prev => prev.filter(id => id !== item.id))
+                              }
+                            } catch (error) {
+                              console.error("Failed to toggle favorite:", error)
+                            }
+                          }}
+                          onAddToCart={async () => {
+                            const token = localStorage.getItem("access_token")
+                            if (!token) {
+                              window.location.href = "/login"
+                              return
+                            }
+                            try {
+                              await cartApi.addToCart(Number(item.id), 1, token)
+                              alert("Savatga qo'shildi!")
+                            } catch (error) {
+                              console.error("Failed to add to cart:", error)
+                            }
+                          }}
                         />
                       </motion.div>
                     ))}

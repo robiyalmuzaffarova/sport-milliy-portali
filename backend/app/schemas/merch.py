@@ -10,6 +10,8 @@ class MerchBase(BaseModel):
     stock: int = Field(default=0, ge=0)
     image_url: Optional[str] = None
     category: str = Field(default="equipment", description="clothing, equipment, accessories, footwear")
+    discount_percent: int = Field(default=0, ge=0, le=100) 
+    is_new: bool = Field(default=False)   
 
 class MerchCreate(MerchBase):
     """Schema for creating merchandise"""
@@ -25,6 +27,8 @@ class MerchUpdate(BaseModel):
     image_url: Optional[str] = None
     is_available: Optional[bool] = None
     category: Optional[str] = None
+    discount_percent: Optional[int] = Field(None, ge=0, le=100)  
+    is_new: Optional[bool] = None 
 
 class MerchResponse(MerchBase):
     """Schema for merchandise response"""
@@ -32,6 +36,8 @@ class MerchResponse(MerchBase):
     owner_id: Optional[int]
     is_available: bool
     category: str
+    discount_percent: int  
+    is_new: bool 
     created_at: datetime
     updated_at: datetime
 

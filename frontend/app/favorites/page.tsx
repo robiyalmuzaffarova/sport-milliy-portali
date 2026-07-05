@@ -1,50 +1,87 @@
 "use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { Heart, ArrowLeft } from "lucide-react"
+import { Heart, ArrowLeft, Loader2 } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { MerchCard } from "@/components/features/merch-card"
 import { Button } from "@/components/ui/button"
-
-const mockFavorites = [
-  {
-    id: "1",
-    title: "Kurash sport formasi",
-    description: "Professional kurash mashqlari uchun maxsus forma",
-    image: "/kurash-sport-uniform-merchandise-uzbekistan.jpg",
-    price: 450000,
-    originalPrice: 550000,
-    rating: 4.8,
-    soldCount: 124,
-    ownerName: "Akmal Nurmatov",
-    ownerImage: "/uzbek-male-wrestler-athlete-portrait.jpg",
-    inStock: true,
-  },
-  {
-    id: "3",
-    title: "Boxing qo'lqoplari",
-    description: "Professional boxing mashqlari uchun qo'lqoplar",
-    image: "/boxing-gloves-merchandise-red.jpg",
-    price: 380000,
-    originalPrice: 450000,
-    rating: 4.7,
-    soldCount: 89,
-    ownerName: "Rustam Xoliqov",
-    ownerImage: "/uzbek-male-boxer-athlete-portrait.jpg",
-    inStock: true,
-  },
-]
+import { favoritesApi, cartApi } from "@/lib/api/client"
 
 function FavoritesContent() {
   const { t } = useLanguage()
-  const [favorites, setFavorites] = useState(mockFavorites)
+  const [favorites, setFavorites] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const removeFavorite = (id: string) => {
-    setFavorites((prev) => prev.filter((item) => item.id !== id))
+  const getToken = () => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("access_token") || ""
+    }
+    return ""
+  }
+
+  useEffect(() => {
+    async function loadFavorites() {
+      const token = getToken()
+      if (!token) {
+        setIsLoading(false)
+        return
+      }
+      try {
+        const data = await favoritesApi.getMyFavorites(token)
+        const items = (data.items || []).map((item: any) => ({
+          id: String(item.id),
+          merchId: item.merch_id,
+          title: item.merch?.name || "Mahsulot",
+          description: item.merch?.description || "",
+          image: item.merch?.image_url || "/placeholder.svg",
+          price: item.merch?.discount_percent > 0
+            ? Math.round(item.merch.price * (1 - item.merch.discount_percent / 100))
+            : item.merch?.price || 0,
+          originalPrice: item.merch?.discount_percent > 0 ? item.merch.price : undefined,
+          rating: 4.5,
+          soldCount: 0,
+          ownerName: item.merch?.owner?.full_name || "Sportchi",
+          ownerImage: item.merch?.owner?.avatar_url || "/placeholder.svg",
+          inStock: (item.merch?.stock || 0) > 0,
+          category: item.merch?.category || "equipment",
+        }))
+        setFavorites(items)
+      } catch (error) {
+        console.error("Failed to load favorites:", error)
+        setFavorites([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadFavorites()
+  }, [])
+
+  const removeFavorite = async (id: string) => {
+    const token = getToken()
+    try {
+      await favoritesApi.removeFavorite(Number(id), token)
+      setFavorites((prev) => prev.filter((item) => item.id !== id))
+    } catch (error) {
+      console.error("Failed to remove favorite:", error)
+    }
+  }
+
+  const addToCart = async (merchId: number) => {
+    const token = getToken()
+    if (!token) {
+      window.location.href = "/login"
+      return
+    }
+    try {
+      await cartApi.addToCart(merchId, 1, token)
+      alert("Savatga qo'shildi!")
+    } catch (error) {
+      console.error("Failed to add to cart:", error)
+    }
   }
 
   return (
@@ -69,23 +106,32 @@ function FavoritesContent() {
             {t.nav.favorites}
           </motion.h1>
 
-          {favorites.length > 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 text-sport animate-spin mb-4" />
+              <p className="text-muted-foreground">Yuklanmoqda...</p>
+            </div>
+          ) : favorites.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {favorites.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
-                >
-                  <MerchCard
-                    {...item}
-                    isLiked={true}
-                    onToggleLike={() => removeFavorite(item.id)}
-                    onAddToCart={() => console.log("Add to cart:", item.id)}
-                  />
-                </motion.div>
-              ))}
+              <AnimatePresence mode="popLayout">
+                {favorites.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.4, delay: index * 0.05 }}
+                  >
+                    <MerchCard
+                      {...item}
+                      isLiked={true}
+                      onToggleLike={() => removeFavorite(item.id)}
+                      onAddToCart={() => addToCart(item.merchId)}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           ) : (
             <motion.div
@@ -99,9 +145,13 @@ function FavoritesContent() {
               <h2 className="font-serif font-bold text-2xl text-foreground mb-2">
                 Sevimlilar ro&apos;yxati bo&apos;sh
               </h2>
-              <p className="text-muted-foreground mb-6">Yoqtirgan mahsulotlaringizni qo&apos;shing</p>
+              <p className="text-muted-foreground mb-6">
+                Yoqtirgan mahsulotlaringizni qo&apos;shing
+              </p>
               <Link href="/merches">
-                <Button className="bg-sport hover:bg-sport/90 text-white rounded-xl">Mahsulotlarni ko&apos;rish</Button>
+                <Button className="bg-sport hover:bg-sport/90 text-white rounded-xl">
+                  Mahsulotlarni ko&apos;rish
+                </Button>
               </Link>
             </motion.div>
           )}

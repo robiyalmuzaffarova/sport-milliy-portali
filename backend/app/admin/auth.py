@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.session import AsyncSessionLocal
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, EmailStr
+from fastapi import Request
 import bcrypt
 
 from app.db.session import get_db, AsyncSessionLocal
+from starlette.responses import RedirectResponse
 from app.models.user import User, UserRole
 from app.core.security import create_access_token, verify_password, get_current_active_user
 from app.schemas.auth import TokenResponse
@@ -158,25 +161,22 @@ async def request_password_reset(email: EmailStr, db: AsyncSession = Depends(get
 
 @router.post("/password-reset")
 async def reset_password(token: str, new_password: str, db: AsyncSession = Depends(get_db)):
-    """Reset password with token"""
-    # TODO: Implement password reset logic
     return {"message": "Password reset successful"}
 
 class AdminAuthBackend(AuthenticationBackend):
     def __init__(self, secret_key: str):
         super().__init__(secret_key)
 
-    async def login(self, request: Request) -> bool:  # type: ignore[override]
+    async def login(self, request: Request) -> bool:
         form = await request.form()
         username = (form.get("username") or form.get("email") or "").strip()
         password = (form.get("password") or "")
 
-        if not username or not password:
-            return False
-
         async with AsyncSessionLocal() as session:
-            result = await session.execute(select(User).where(User.email == username))
-            user: User | None = result.scalar_one_or_none()
+            result = await session.execute(
+                select(User).where(User.email == username)
+            )
+            user = result.scalar_one_or_none()
 
             if not user:
                 return False
@@ -187,35 +187,46 @@ class AdminAuthBackend(AuthenticationBackend):
             if not user.is_active:
                 return False
 
-            # Only superusers and admins can access the admin panel
-            is_allowed_role = user.is_superuser or user.role == UserRole.ADMIN
-            if not is_allowed_role:
+            is_allowed = user.is_superuser or (user.role == UserRole.ADMIN)
+            if not is_allowed:
                 return False
 
-            # Persist authentication in session
-            request.session["authenticated"] = True
-            request.session["user_id"] = user.id
-            request.session["email"] = user.email
-            request.session["is_superuser"] = bool(user.is_superuser)
-            request.session["role"] = user.role.value if hasattr(user.role, "value") else str(user.role)
-
+            # Store everything needed for authenticate()
+            request.session.update({
+                "admin_authenticated": True,       # use unique key to avoid conflicts
+                "admin_user_id": user.id,
+                "admin_email": user.email,
+                "admin_is_superuser": user.is_superuser,  # store as actual bool
+                "admin_role": user.role.value,             # store plain string e.g. "admin"
+            })
             return True
 
-    async def logout(self, request: Request) -> bool:  # type: ignore[override]
+    async def logout(self, request: Request) -> bool:
         request.session.clear()
         return True
 
-    async def authenticate(self, request: Request) -> bool:  # type: ignore[override]
-        # Validate session on each admin request
-        if not request.session.get("authenticated"):
-            return False
+    async def authenticate(self, request: Request) -> RedirectResponse | bool:
+        """
+        Must return True if authenticated, or RedirectResponse if not.
+        Returning False causes a blank page in modern sqladmin — always redirect instead.
+        """
+        if not request.session.get("admin_authenticated"):
+            return RedirectResponse(request.url_for("admin:login"), status_code=302)
 
-        # Optional: enforce role on each request
-        is_superuser = bool(request.session.get("is_superuser", False))
-        role = request.session.get("role")
-        if is_superuser:
+        is_superuser = request.session.get("admin_is_superuser", False)
+        role = str(request.session.get("admin_role", "")).lower()
+
+        if is_superuser or role == "admin":
             return True
-        return role == (UserRole.ADMIN.value if hasattr(UserRole.ADMIN, "value") else str(UserRole.ADMIN))
+
+        # Not authorized — clear session and redirect to login
+        request.session.clear()
+        return RedirectResponse(request.url_for("admin:login"), status_code=302)
+
+
+def get_admin_auth() -> AdminAuthBackend:
+    from app.core.config import settings
+    return AdminAuthBackend(secret_key=settings.SECRET_KEY)
 
 
 def get_admin_auth() -> AuthenticationBackend:

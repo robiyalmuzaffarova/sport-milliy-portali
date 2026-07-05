@@ -31,12 +31,14 @@ from starlette.staticfiles import StaticFiles
 
 # Admin panel imports
 from sqladmin import Admin
+from app.admin.auth import AdminAuthBackend
 from app.admin.auth import get_admin_auth
 from app.admin.views import (
     NewsAdmin,
     MerchAdmin,
     EducationAdmin,
-    JobVacancyAdmin
+    JobVacancyAdmin,
+    UserAdmin
 )
 
 load_dotenv()
@@ -128,6 +130,31 @@ app.add_middleware(
 
 # Rate Limiter
 rate_limiter = RateLimiter()
+
+print("🔧 Setting up admin panel...")
+
+try:
+    authentication_backend = get_admin_auth()
+
+    admin = Admin(
+        app=app,
+        engine=engine,
+        title="Sport Milliy Portali - Admin Panel",
+        logo_url=None,
+        authentication_backend=authentication_backend,
+    )
+
+    admin.add_view(UserAdmin)
+    admin.add_view(NewsAdmin)
+    admin.add_view(MerchAdmin)
+    admin.add_view(EducationAdmin)
+    admin.add_view(JobVacancyAdmin)
+
+    print("✅ Admin panel configured successfully!")
+
+except Exception as e:
+    print(f"⚠️  Warning: Could not set up admin panel: {e}")
+    traceback.print_exc()
 
 
 # ============================================================================
@@ -226,6 +253,17 @@ async def docs_login(
         password: str = Form(...),
         db: AsyncSession = Depends(get_db)
 ):
+    # 1. OVERRIDE: Check the fallback/env credentials FIRST
+    if email == settings.DOCS_USERNAME and password == settings.DOCS_PASSWORD:
+        request.session.update({
+            "docs_authenticated": True,
+            "docs_email": email,
+            "docs_static_superuser": True
+        })
+        print("✅ Docs access GRANTED via fallback credentials (static superuser)")
+        return RedirectResponse(url="/docs", status_code=302)
+
+    # 2. STANDARD: If not the fallback, check the database
     try:
         # Query user by email
         result = await db.execute(select(User).where(User.email == email))
@@ -260,27 +298,12 @@ async def docs_login(
         })
 
         print(f"✅ Docs access GRANTED: {user.email} (SUPERUSER)")
-
         return RedirectResponse(url="/docs", status_code=302)
 
     except Exception as e:
-        # If DB is unreachable or any error occurs, allow a safe fallback using settings.DOCS_USERNAME/DOCS_PASSWORD
         print(f"❌ Docs login error: {e}")
-        try:
-            if email == settings.DOCS_USERNAME and password == settings.DOCS_PASSWORD:
-                # Create a session that marks the user as a static superuser (no DB lookup required)
-                request.session.update({
-                    "docs_authenticated": True,
-                    "docs_email": email,
-                    "docs_static_superuser": True
-                })
-                print("✅ Docs access GRANTED via fallback credentials (static superuser)")
-                return RedirectResponse(url="/docs", status_code=302)
-        except Exception as e2:
-            print(f"Fallback check error: {e2}")
-
         request.session["docs_error"] = (
-            "Login failed. If the database is down, use the fallback docs credentials or start the DB and try again."
+            "Login failed due to an internal error or database connection issue."
         )
         return RedirectResponse(url="/docs/login", status_code=302)
 
@@ -348,30 +371,6 @@ async def get_openapi_json(request: Request):
             detail="Superuser access required"
         )
     return app.openapi()
-
-
-print("🔧 Setting up admin panel...")
-
-try:
-    authentication_backend = get_admin_auth()
-
-    admin = Admin(
-        app=app,
-        engine=engine,
-        title="Sport Milliy Portali - Admin Panel",
-        logo_url=None,
-        authentication_backend=authentication_backend,
-    )
-
-    admin.add_view(NewsAdmin)
-    admin.add_view(MerchAdmin)
-    admin.add_view(EducationAdmin)
-    admin.add_view(JobVacancyAdmin)
-
-    print("✅ Admin panel configured successfully!")
-
-except Exception as e:
-    print(f"⚠️  Warning: Could not set up admin panel: {e}")
 
 
 @app.middleware("http")
