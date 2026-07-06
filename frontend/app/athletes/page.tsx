@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, useScroll, useTransform } from "framer-motion"
 import { LayoutGrid, List, Trophy, TrendingUp } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
@@ -12,6 +12,9 @@ import { SegmentedControl } from "@/components/ios/segmented-control"
 import { AvatarStack } from "@/components/ios/avatar-stack"
 import { PillButton } from "@/components/ios/pill-button"
 import { usersApi } from "@/lib/api/client"
+
+// Hero backdrop photo — swap this if you replace the Getty-watermarked image.
+const HERO_BG_IMAGE = "/sportsmen.png"
 
 // Dynamic Mock Data - Real athlete information structure
 const mockAthletes = [
@@ -136,6 +139,14 @@ function AthletesContent() {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
   const [filterGroups, setFilterGroups] = useState<any[]>(staticRatingFilter)
 
+  // As the page scrolls, the fixed backdrop photo goes from sharp (hero) to softly blurred
+  // and darkened, so it stops competing with the filters/athlete grid but keeps the page
+  // feeling like one continuous surface all the way to the footer.
+  const { scrollY } = useScroll()
+  const bgBlurPx = useTransform(scrollY, [0, 480], [0, 22])
+  const bgFilter = useTransform(bgBlurPx, (v) => `blur(${v}px)`)
+  const overlayOpacity = useTransform(scrollY, [0, 480], [0.4, 0.68])
+
   // Ensure hydration matches by setting mounted flag first
   useEffect(() => {
     setIsMounted(true)
@@ -250,22 +261,32 @@ function AthletesContent() {
   })
 
   return (
-    <div className="min-h-screen bg-card" suppressHydrationWarning>
+    <div className="relative min-h-screen" suppressHydrationWarning>
+      {/* Fixed, page-wide backdrop photo. Sharp at the top (hero), then blurs and darkens
+          as the person scrolls into the filters/athlete grid, fading into a solid tone at
+          the bottom so it settles into the footer instead of cutting off. */}
+      <motion.div className="fixed inset-0 -z-20" style={{ filter: bgFilter }}>
+        <img src={HERO_BG_IMAGE} alt="" className="w-full h-full object-cover object-[50%_20%]" />
+      </motion.div>
+      <div className="fixed inset-0 -z-20 bg-primary/55" />
+      <motion.div className="fixed inset-0 -z-20 bg-primary" style={{ opacity: overlayOpacity }} />
+      <div className="fixed inset-x-0 bottom-0 h-56 -z-20 bg-gradient-to-b from-transparent to-primary/85" />
+
       <Header />
 
-      {/* Hero Banner - iOS Style */}
+      {/* Hero Banner */}
       <section 
-        className="relative pt-28 pb-12 bg-secondary overflow-hidden"
+        className="relative pt-28 pb-12 overflow-hidden"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
               <div className="flex items-center gap-2 mb-3">
-                <Trophy className="w-5 h-5 text-sport" />
-                <span className="text-sm font-medium text-sport">Eng yaxshilar</span>
+                <Trophy className="w-5 h-5 text-primary-foreground" />
+                <span className="text-sm font-medium text-primary-foreground">Eng yaxshilar</span>
               </div>
-              <h1 className="font-bold text-4xl md:text-5xl text-primary tracking-tight">{t.nav.athletes}</h1>
-              <p className="text-muted-foreground mt-3 max-w-xl">
+              <h1 className="font-bold text-4xl md:text-5xl text-primary-foreground tracking-tight">{t.nav.athletes}</h1>
+              <p className="text-primary-foreground/70 mt-3 max-w-xl">
                 O'zbekistonning eng yaxshi sportchilarini toping va ularning yutuqlari bilan tanishing
               </p>
             </motion.div>
@@ -350,8 +371,8 @@ function AthletesContent() {
             <div className="flex-1">
               {/* Controls */}
               <div className="flex items-center justify-between mb-6 ios-glass p-3 rounded-2xl">
-                <p className="text-sm text-muted-foreground px-2">
-                  <span className="font-semibold text-primary">{filteredAthletes.length}</span> sportchi topildi
+                <p className="text-sm text-primary-foreground/80 px-2">
+                  <span className="font-semibold text-primary-foreground">{filteredAthletes.length}</span> sportchi topildi
                 </p>
 
                 <SegmentedControl
@@ -367,8 +388,8 @@ function AthletesContent() {
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-sport mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">Yuklanmoqda...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-accent mx-auto mb-4"></div>
+                    <p className="text-primary-foreground/70">Yuklanmoqda...</p>
                   </div>
                 </div>
               ) : (
@@ -388,7 +409,7 @@ function AthletesContent() {
                       ))
                     ) : (
                       <div className="col-span-full py-12 text-center">
-                        <p className="text-muted-foreground">Criteria ga mos sportchi topilmadi</p>
+                        <p className="text-primary-foreground/70">Criteria ga mos sportchi topilmadi</p>
                       </div>
                     )}
                   </div>

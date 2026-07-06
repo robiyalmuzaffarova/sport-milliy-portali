@@ -34,7 +34,7 @@ export function TrainerCard({
 }: TrainerCardProps) {
   return (
     <motion.div
-      className={cn("group bg-card rounded-3xl overflow-hidden neu-card", className)}
+      className={cn("group ios-glass rounded-3xl overflow-hidden", className)}
       whileHover={{ y: -5 }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -87,14 +87,14 @@ export function TrainerCard({
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 mt-5">
-          <div className="bg-secondary rounded-xl p-3 text-center">
+          <div className="bg-white/30 backdrop-blur-sm rounded-xl p-3 text-center">
             <div className="flex items-center justify-center gap-2 text-muted-foreground mb-1">
               <Award className="w-4 h-4" />
               <span className="text-xs">Tajriba</span>
             </div>
             <div className="font-serif font-bold text-lg text-secondary-foreground">{experience} yil</div>
           </div>
-          <div className="bg-secondary rounded-xl p-3 text-center">
+          <div className="bg-white/30 backdrop-blur-sm rounded-xl p-3 text-center">
             <div className="flex items-center justify-center gap-2 text-muted-foreground mb-1">
               <Users className="w-4 h-4" />
               <span className="text-xs">O&apos;quvchilar</span>
@@ -104,7 +104,7 @@ export function TrainerCard({
         </div>
 
         {/* Price & Action */}
-        <div className="flex items-center justify-between mt-5 pt-5 border-t border-border">
+        <div className="flex items-center justify-between mt-5 pt-5 border-t border-white/20">
           {price && (
             <div>
               <span className="text-xs text-muted-foreground">Narxi</span>

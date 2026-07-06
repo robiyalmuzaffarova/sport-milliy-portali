@@ -427,18 +427,49 @@ function HomeContent() {
               </div>
             </div>
 
-            {/* AI Buddy Card */}
-            <div className="h-full">
-              <BentoCard
-                title="AI Sport Buddy"
-                description="Sun'iy intellekt yordamida shaxsiy tavsiyalar"
-                icon={<MessageCircle className="w-6 h-6" />}
-                href="/ai-buddy"
-                variant="sport"
-                size="md"
-                className="h-full"
-              />
-            </div>
+            {/* AI Buddy Card - Featured with Image Background */}
+            <Link href="/ai-buddy" className="h-full">
+              <motion.div
+                className="relative rounded-3xl overflow-hidden h-full min-h-[220px] cursor-pointer hover:shadow-lg transition-shadow"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -4 }}
+              >
+                {/* Background Image */}
+                <div className="absolute inset-0 z-0">
+                  <Image
+                    src="/ai-sport-buddy.jpg"
+                    alt="AI Sport Buddy"
+                    fill
+                    className="object-cover"
+                  />
+                  {/* Dark overlay for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-green-950/95 via-green-900/80 to-green-800/60" />
+                </div>
+
+                {/* Content */}
+                <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <ArrowRight className="w-5 h-5 text-white -rotate-45" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-lg text-white leading-tight">
+                      AI Sport Buddy
+                    </h3>
+                    <p className="text-sm text-white/80 leading-relaxed">
+                      Sun'iy intellekt yordamida shaxsiy tavsiyalar
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </Link>
 
             {/* Quick Action Card */}
             <div className="ios-card p-6 rounded-3xl">

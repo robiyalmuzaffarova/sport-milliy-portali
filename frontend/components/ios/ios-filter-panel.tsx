@@ -66,7 +66,7 @@ export function IOSFilterPanel({
   const totalSelected = Object.values(selectedFilters).flat().length
 
   return (
-    <div className={cn("ios-card p-5 rounded-3xl", className)}>
+    <div className={cn("ios-glass p-5 rounded-3xl", className)}>
       {/* Search */}
       <div className="relative mb-5">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -75,7 +75,7 @@ export function IOSFilterPanel({
           placeholder={searchPlaceholder}
           value={searchValue}
           onChange={(e) => onSearchChange?.(e.target.value)}
-          className="w-full h-12 pl-12 pr-4 rounded-2xl bg-secondary border-0 text-primary placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-sport/30 transition-shadow"
+          className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white/30 backdrop-blur-sm border-0 text-primary placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-sport/30 transition-shadow"
         />
       </div>
 
@@ -86,7 +86,7 @@ export function IOSFilterPanel({
           const selected = selectedFilters[group.id] || []
 
           return (
-            <div key={group.id} className="border-b border-border last:border-0">
+            <div key={group.id} className="border-b border-white/20 last:border-0">
               <button
                 onClick={() => toggleGroup(group.id)}
                 className="w-full flex items-center justify-between py-4 text-left"
@@ -124,7 +124,9 @@ export function IOSFilterPanel({
                               onClick={() => handleOptionToggle(group.id, option.value, group.type || "checkbox")}
                               className={cn(
                                 "w-full flex items-center justify-between p-3 rounded-xl transition-all",
-                                isSelected ? "bg-sport/10 text-sport" : "bg-secondary hover:bg-secondary/80 text-primary",
+                                isSelected
+                                  ? "bg-sport/10 text-sport"
+                                  : "bg-white/30 backdrop-blur-sm hover:bg-white/40 text-primary",
                               )}
                             >
                               <div className="flex items-center gap-3">
@@ -173,7 +175,7 @@ export function IOSFilterPanel({
       </div>
 
       {/* Actions */}
-      <div className="mt-5 pt-5 border-t border-border space-y-3">
+      <div className="mt-5 pt-5 border-t border-white/20 space-y-3">
         {totalSelected > 0 && (
           <button
             onClick={onClearAll}

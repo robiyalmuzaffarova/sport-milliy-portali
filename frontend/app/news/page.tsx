@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, useScroll, useTransform } from "framer-motion"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button"
 import { FloatingElement } from "@/components/common/floating-element"
 import { newsApi } from "@/lib/api/client"
 import { formatDateUzbekConsistent } from "@/lib/date-utils"
+
+// Hero backdrop photo
+const HERO_BG_IMAGE = "/world-cup.jpg"
 
 const newsCategories = ["Barchasi", "Yutuqlar", "Musobaqalar", "Yangiliklar", "Intervyu", "Sport salomatligi"]
 
@@ -96,6 +99,14 @@ function NewsContent() {
   const [news, setNews] = useState<any[]>(mockNews)
   const [isLoading, setIsLoading] = useState(false)
 
+  // As the page scrolls, the fixed backdrop photo goes from sharp (hero) to softly blurred
+  // and darkened, so it stops competing with the category tabs/news grid but keeps the page
+  // feeling like one continuous surface all the way to the footer.
+  const { scrollY } = useScroll()
+  const bgBlurPx = useTransform(scrollY, [0, 480], [0, 22])
+  const bgFilter = useTransform(bgBlurPx, (v) => `blur(${v}px)`)
+  const overlayOpacity = useTransform(scrollY, [0, 480], [0.4, 0.68])
+
   // Ensure hydration matches by setting mounted flag first
   useEffect(() => {
     setIsMounted(true)
@@ -143,13 +154,23 @@ function NewsContent() {
     })
     
   return (
-    <div className="min-h-screen bg-secondary">
+    <div className="relative min-h-screen">
+      {/* Fixed, page-wide backdrop photo. Sharp at the top (hero), then blurs and darkens
+          as the person scrolls into the category tabs/news grid, fading into a solid tone
+          at the bottom so it settles into the footer instead of cutting off. */}
+      <motion.div className="fixed inset-0 -z-20" style={{ filter: bgFilter }}>
+        <img src={HERO_BG_IMAGE} alt="" className="w-full h-full object-cover object-[50%_30%]" />
+      </motion.div>
+      <div className="fixed inset-0 -z-20 bg-primary/55" />
+      <motion.div className="fixed inset-0 -z-20 bg-primary" style={{ opacity: overlayOpacity }} />
+      <div className="fixed inset-x-0 bottom-0 h-56 -z-20 bg-gradient-to-b from-transparent to-primary/85" />
+
       <Header />
 
       {/* Hero Banner */}
-      <section className="relative pt-24 pb-16 bg-primary overflow-hidden">
+      <section className="relative pt-24 pb-16 overflow-hidden">
         <FloatingElement className="top-16 left-[10%] opacity-20" delay={0}>
-          <div className="w-24 h-24 rounded-full bg-sport/30" />
+          <div className="w-24 h-24 rounded-full bg-accent/30" />
         </FloatingElement>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -163,7 +184,7 @@ function NewsContent() {
       </section>
 
       {/* Category Tabs */}
-      <section className="py-8 bg-background border-b border-border">
+      <section className="relative py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {newsCategories.map((category) => (
@@ -174,7 +195,7 @@ function NewsContent() {
                 className={`rounded-full whitespace-nowrap ${
                   activeCategory === category
                     ? "bg-sport hover:bg-sport/90 text-white"
-                    : "border-border bg-transparent hover:bg-secondary"
+                    : "border-primary-foreground/25 text-primary-foreground/80 bg-transparent hover:bg-white/10"
                 }`}
                 onClick={() => setActiveCategory(category)}
               >
@@ -186,13 +207,13 @@ function NewsContent() {
       </section>
 
       {/* News Grid */}
-      <section className="py-12">
+      <section className="relative py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-sport mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Yuklanmoqda...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-accent mx-auto mb-4"></div>
+                <p className="text-primary-foreground/70">Yuklanmoqda...</p>
               </div>
             </div>
           ) : (
@@ -212,7 +233,7 @@ function NewsContent() {
 
               {filteredNews.length === 0 && (
                 <div className="text-center py-20">
-                  <p className="text-muted-foreground">Bu kategoriyada yangiliklar topilmadi</p>
+                  <p className="text-primary-foreground/70">Bu kategoriyada yangiliklar topilmadi</p>
                 </div>
               )}
             </>
