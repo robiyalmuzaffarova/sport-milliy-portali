@@ -63,6 +63,9 @@ class User(BaseModel):
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
     cart_items = relationship("Cart", back_populates="user", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
-    
+    uploaded_courses = relationship("Course", foreign_keys="Course.uploaded_by_id", back_populates="uploaded_by", lazy="selectin")
+
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"
+
+    

@@ -36,27 +36,6 @@ const DIFFICULTY_LABELS: Record<number, { label: string; color: string }> = {
   3: { label: "Murakkab",     color: "bg-red-100 text-red-700" },
 }
 
-// Mock data shown while the real API loads / as fallback
-const MOCK_COURSES: Course[] = Array.from({ length: 8 }, (_, i) => ({
-  id:               `mock-${i}`,
-  title:            ["Kurash asoslari: birinchi darslar", "Tennis texnikasi va strategiyasi",
-                     "Boks: jab va cross kombinatsiyalari", "Futbol dribbling mahorati",
-                     "Suzish: bajarilish texnikasi", "Gimnastika: muvozanat mashqlari",
-                     "Atletika: sprint texnikasi", "Basketbol: top ushlab olish"][i],
-  description:      "Bu kurs sport murabbiylar tomonidan tayyorlangan va professional darajadagi ko'nikmalarni rivojlantirishga yordam beradi.",
-  sport_type:       SPORT_TYPES[i % SPORT_TYPES.length],
-  difficulty_level: ([1, 2, 3, 1, 2, 3, 1, 2][i]) as 1 | 2 | 3,
-  video_url:        "/placeholder-video.mp4",
-  thumbnail_url:    `/course-thumb-${(i % 3) + 1}.jpg`,
-  duration_seconds: 600 + i * 300,
-  qr_code_image_url:"/placeholder-qr.png",
-  status:           "approved",
-  view_count:       120 + i * 47,
-  rating:           4.2 + (i % 3) * 0.2,
-  created_at:       new Date(2026, 0, i + 1).toISOString(),
-  updated_at:       new Date(2026, 0, i + 1).toISOString(),
-}))
-
 // ── Helper functions ──────────────────────────────────────────────────────────
 
 function formatDuration(seconds?: number): string {
@@ -171,9 +150,11 @@ function CourseCard({ course, onQrDownload }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 function CoursesContent() {
-  const [courses,        setCourses]        = useState<Course[]>(MOCK_COURSES)
-  const [total,          setTotal]          = useState(MOCK_COURSES.length)
-  const [isLoading,      setIsLoading]      = useState(false)
+  // Real state starts empty — no mock fallback. What you see is what your API returns.
+  const [courses,        setCourses]        = useState<Course[]>([])
+  const [total,          setTotal]          = useState(0)
+  const [isLoading,      setIsLoading]      = useState(true)
+  const [loadError,      setLoadError]      = useState<string | null>(null)
   const [search,         setSearch]         = useState("")
   const [selectedSport,  setSelectedSport]  = useState<SportType | "">("")
   const [filterOpen,     setFilterOpen]     = useState(false)
@@ -182,6 +163,7 @@ function CoursesContent() {
 
   const fetchCourses = useCallback(async (searchVal: string, sport: string, pageNum: number) => {
     setIsLoading(true)
+    setLoadError(null)
     try {
       const data = await coursesApi.getAll(
         pageNum * LIMIT,
@@ -189,11 +171,19 @@ function CoursesContent() {
         sport || undefined,
         searchVal || undefined,
       )
-      setCourses(data.items.length > 0 ? data.items : MOCK_COURSES)
-      setTotal(data.total || MOCK_COURSES.length)
-    } catch {
-      setCourses(MOCK_COURSES)
-      setTotal(MOCK_COURSES.length)
+      // Whatever the API returns is shown as-is — including a real empty array,
+      // which means "no courses match" rather than being silently replaced.
+      setCourses(data.items)
+      setTotal(data.total)
+    } catch (err) {
+      // Surface the failure instead of masking it with mock data.
+      // A silently-swallowed error here previously made a broken API
+      // indistinguishable from a working one with no courses yet.
+      setCourses([])
+      setTotal(0)
+      setLoadError(
+        err instanceof Error ? err.message : "Kurslarni yuklab bo'lmadi"
+      )
     } finally {
       setIsLoading(false)
     }
@@ -385,16 +375,40 @@ function CoursesContent() {
                 </div>
               ))}
             </div>
+          ) : loadError ? (
+            /* Distinct from "no results" — this means the API call itself failed
+               (network error, backend down, wrong URL, CORS, etc.), not that
+               your database is legitimately empty. */
+            <div className="text-center py-24">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <X className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-primary mb-2">Kurslarni yuklashda xatolik</h3>
+              <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
+                {loadError}
+              </p>
+              <PillButton variant="outline" onClick={() => fetchCourses(search, selectedSport, page)}>
+                Qayta urinish
+              </PillButton>
+            </div>
           ) : courses.length === 0 ? (
+            /* Genuine empty state — API responded fine, there just aren't
+               any approved courses matching the current filters yet. */
             <div className="text-center py-24">
               <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
-              <h3 className="text-lg font-semibold text-primary mb-2">Kurs topilmadi</h3>
+              <h3 className="text-lg font-semibold text-primary mb-2">
+                {hasFilters ? "Kurs topilmadi" : "Hozircha kurslar yo'q"}
+              </h3>
               <p className="text-muted-foreground text-sm mb-6">
-                Qidiruv so'zini yoki filtrlni o'zgartiring
+                {hasFilters
+                  ? "Qidiruv so'zini yoki filtrlni o'zgartiring"
+                  : "Tez orada yangi kurslar qo'shiladi"}
               </p>
-              <PillButton variant="outline" onClick={clearFilters}>
-                Filtrlarni tozalash
-              </PillButton>
+              {hasFilters && (
+                <PillButton variant="outline" onClick={clearFilters}>
+                  Filtrlarni tozalash
+                </PillButton>
+              )}
             </div>
           ) : (
             <AnimatePresence mode="wait">

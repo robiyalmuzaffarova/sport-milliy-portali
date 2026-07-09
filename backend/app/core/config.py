@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+
+    # Frontend
+    FRONTEND_URL: str = "http://localhost:3000"
     
     # RabbitMQ
     RABBITMQ_URL: str = "amqp://sportuser:sportpass@localhost:5672/"
@@ -123,8 +126,8 @@ class Settings(BaseSettings):
     WS_MAX_CONNECTIONS: int = 1000
     
     # Celery
-    CELERY_BROKER_URL: str = "amqp://sportuser:sportpass@localhost:5672/"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+    CELERY_BROKER_URL: str
+    CELERY_RESULT_BACKEND: str
     CELERY_TASK_SERIALIZER: str = "json"
     CELERY_RESULT_SERIALIZER: str = "json"
     CELERY_TIMEZONE: str = "Asia/Tashkent"

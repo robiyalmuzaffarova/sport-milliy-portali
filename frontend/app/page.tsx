@@ -504,6 +504,51 @@ function HomeContent() {
                 </Link>
               </div>
             </div>
+
+            {/* Courses Card - Featured with Image Background, same treatment as AI Buddy
+                but tinted amber/gold instead of green so the two are visually distinct */}
+            <Link href="/courses" className="h-full">
+              <motion.div
+                className="relative rounded-3xl overflow-hidden h-full min-h-[220px] cursor-pointer hover:shadow-lg transition-shadow"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -4 }}
+              >
+                {/* Background Image — placeholder; swap for a dedicated courses photo if you have one */}
+                <div className="absolute inset-0 z-0">
+                  <Image
+                    src="/Sports News.jpg"
+                    alt="Kurslar"
+                    fill
+                    className="object-cover"
+                  />
+                  {/* Amber/gold overlay for text readability, distinct from AI Buddy's green */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-amber-950/95 via-amber-900/80 to-amber-800/60" />
+                </div>
+
+                {/* Content */}
+                <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <Play className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <ArrowRight className="w-5 h-5 text-white -rotate-45" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-lg text-white leading-tight">
+                      Kurslar
+                    </h3>
+                    <p className="text-sm text-white/80 leading-relaxed">
+                      Murabbiylardan video darslar va treninglar
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </Link>
           </div>
         </div>
       </section>

@@ -188,14 +188,26 @@ export function Header() {
               </div>
 
               {isLoggedIn ? (
-                <Button
-                  onClick={handleLogout}
-                  className="hidden md:block bg-white text-sport hover:bg-white/90 rounded-full px-4"
-                  size="sm"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Chiqish
-                </Button>
+                <div className="hidden md:flex items-center gap-2">
+                  <Link href="/profile">
+                    <PillButton
+                      variant="outline"
+                      size="sm"
+                      className="text-white border-white/30 hover:bg-white/10"
+                      icon={<User className="w-4 h-4" />}
+                    >
+                      {t.nav.profile}
+                    </PillButton>
+                  </Link>
+                  <Button
+                    onClick={handleLogout}
+                    className="bg-white text-sport hover:bg-white/90 rounded-full px-4"
+                    size="sm"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Chiqish
+                  </Button>
+                </div>
               ) : (
                 <Link href="/login" className="hidden md:block">
                   <PillButton 

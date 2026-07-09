@@ -38,7 +38,7 @@ export function NewsCard({ id, title, excerpt, image, date, category, className 
 
   return (
     <motion.article
-      className={cn("group bg-card rounded-3xl overflow-hidden ios-card-elevated", className)}
+      className={cn("group ios-glass rounded-3xl overflow-hidden", className)}
       whileHover={{ y: -6 }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -71,7 +71,7 @@ export function NewsCard({ id, title, excerpt, image, date, category, className 
 
           <p className="text-muted-foreground text-sm mt-2 line-clamp-2 leading-relaxed">{excerpt}</p>
 
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/20">
             <span className="text-sport font-medium text-sm">Batafsil</span>
             <div className="w-8 h-8 rounded-full bg-sport/10 flex items-center justify-center group-hover:bg-sport group-hover:text-white transition-colors">
               <ArrowUpRight className="w-4 h-4 text-sport group-hover:text-white transition-colors" />

@@ -1,4 +1,5 @@
 from sqladmin import ModelView
+import wtforms
 from starlette.requests import Request
 from app.models.news import News
 from app.models.merch import Merch
@@ -143,7 +144,22 @@ class UserAdmin(BaseAdminView, model=User):
     column_sortable_list = [User.id, User.email, User.role, User.created_at]
     column_filters = [User.role, User.is_active, User.is_superuser]
     form_excluded_columns = ["hashed_password", "news_articles", "merches",
-                              "ai_chats", "favorites", "cart_items", "transactions"]
+                              "ai_chats", "favorites", "cart_items", "transactions",
+                              "uploaded_courses"]
+    form_extra_fields = {
+        "password": wtforms.PasswordField("Password")
+    }
+
+    async def on_model_change(self, data: dict, model, is_created: bool, request) -> None:
+        password = data.pop("password", None)
+
+        if is_created:
+            if not password:
+                raise ValueError("Password is required when creating a user.")
+            model.hashed_password = get_password_hash(password)
+        elif password:
+            model.hashed_password = get_password_hash(password)
+
     page_size = 20
     can_export = True
     allow_admin_delete = False

@@ -1,10 +1,10 @@
-# Import model modules so their Table metadata is registered on Base
 from . import (
     user,
     news,
     merch,
     favorite,
     cart,
+    course,
     ai_chat,
     job_vacancy,
     education,
@@ -17,6 +17,7 @@ __all__ = [
     "merch",
     "favorite",
     "cart",
+    "course",
     "ai_chat",
     "job_vacancy",
     "education",

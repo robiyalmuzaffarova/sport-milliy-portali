@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     job_vacancy,
     favorites,
     cart,
+    course,
     ai_buddy
 )
 
@@ -29,3 +30,4 @@ api_router.include_router(job_vacancy.router, prefix="/job-vacancies", tags=["Jo
 api_router.include_router(favorites.router, prefix="/favorites", tags=["Favorites"])
 api_router.include_router(cart.router, prefix="/cart", tags=["Shopping Cart"])
 api_router.include_router(ai_buddy.router, prefix="/ai-buddy", tags=["AI Buddy"])
+api_router.include_router(course.router, prefix="/courses", tags=["Courses"])
