@@ -24,7 +24,8 @@ import {
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { PillButton } from "@/components/ios/pill-button"
-import { coursesApi, Course, triggerBlobDownload } from "@/lib/api/courses-client"
+import { coursesApi, Course, triggerBlobDownload, getMediaUrl } from "@/lib/api/courses-client"
+import { LanguageProvider } from "@/lib/i18n/language-context"
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -125,7 +126,7 @@ function QrPanel({ course }: { course: Course }) {
       <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-white border border-border mb-4 p-3">
         {course.qr_code_image_url ? (
           <Image
-            src={course.qr_code_image_url}
+            src={getMediaUrl(course.qr_code_image_url)}
             alt="QR kod"
             fill
             className="object-contain p-2"
@@ -186,15 +187,18 @@ function QrPanel({ course }: { course: Course }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function CourseDetailPage() {
+function CourseDetailContent() {
   const params   = useParams()
   const router   = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const [course,    setCourse]    = useState<Course>(MOCK_COURSE)
   const [isLoading, setIsLoading] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted,   setIsMuted]   = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [videoDuration, setVideoDuration] = useState(0)
 
   useEffect(() => {
     const id = params?.id as string
@@ -205,6 +209,21 @@ export default function CourseDetailPage() {
       .catch(() => { /* keep mock */ })
       .finally(() => setIsLoading(false))
   }, [params?.id])
+
+  // Belt-and-suspenders duration detection: onLoadedMetadata / onDurationChange /
+  // onTimeUpdate normally set this, but some mp4 encodes don't fire those
+  // reliably. Polling the element directly guarantees we never get stuck with
+  // videoDuration === 0 — which would silently cap the seek bar's max at 0 and
+  // make every click seek to the very start, regardless of where it's clicked.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const d = videoRef.current?.duration
+      if (d && isFinite(d) && d > 0) {
+        setVideoDuration((prev) => (prev !== d ? d : prev))
+      }
+    }, 300)
+    return () => clearInterval(interval)
+  }, [course.video_url])
 
   const togglePlay = () => {
     if (!videoRef.current) return
@@ -219,7 +238,14 @@ export default function CourseDetailPage() {
   }
 
   const handleFullscreen = () => {
-    videoRef.current?.requestFullscreen?.()
+    containerRef.current?.requestFullscreen?.()
+  }
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!videoRef.current) return
+    const time = Number(e.target.value)
+    videoRef.current.currentTime = time
+    setCurrentTime(time)
   }
 
   const diff = DIFFICULTY_LABELS[course.difficulty_level] || DIFFICULTY_LABELS[1]
@@ -260,6 +286,7 @@ export default function CourseDetailPage() {
 
             {/* Video player */}
             <motion.div
+              ref={containerRef}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
@@ -267,17 +294,32 @@ export default function CourseDetailPage() {
             >
               <video
                 ref={videoRef}
-                src={course.video_url}
-                poster={course.thumbnail_url}
+                src={getMediaUrl(course.video_url)}
+                poster={getMediaUrl(course.thumbnail_url)}
                 className="w-full h-full object-contain"
                 onPlay={()  => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => setIsPlaying(false)}
+                onTimeUpdate={(e) => {
+                  setCurrentTime(e.currentTarget.currentTime)
+                  // Some mp4 encodes don't report a valid duration until playback
+                  // has started (metadata at the end of the file) — keep checking
+                  // here as a fallback so it doesn't get stuck at "--".
+                  const d = e.currentTarget.duration
+                  if (isFinite(d) && d !== videoDuration) setVideoDuration(d)
+                }}
+                onDurationChange={(e) => {
+                  const d = e.currentTarget.duration
+                  if (isFinite(d)) setVideoDuration(d)
+                }}
+                onLoadedMetadata={(e) => {
+                  const d = e.currentTarget.duration
+                  if (isFinite(d)) setVideoDuration(d)
+                }}
               />
 
-              {/* Controls overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                {/* Center play/pause */}
+              {/* Center play/pause + darkening overlay (hover only) */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <button
                     onClick={togglePlay}
@@ -289,9 +331,39 @@ export default function CourseDetailPage() {
                     }
                   </button>
                 </div>
+              </div>
 
-                {/* Bottom controls */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
+              {/* Bottom control strip — progress bar, time, and buttons stack in
+                  normal flow (not independently-positioned) so their click areas
+                  never overlap each other */}
+              <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-8 bg-gradient-to-t from-black/80 to-transparent">
+                {/* Progress bar — always visible */}
+                <input
+                  type="range"
+                  min={0}
+                  max={videoDuration || 0}
+                  step={0.1}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/25 accent-[#3c5a3c]
+                             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
+                             [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow"
+                  style={{
+                    background: videoDuration
+                      ? `linear-gradient(to right, #ffffff ${(currentTime / videoDuration) * 100}%, rgba(255,255,255,0.25) ${(currentTime / videoDuration) * 100}%)`
+                      : undefined,
+                  }}
+                />
+
+                {/* Time readout — always visible */}
+                <div className="flex items-center justify-between mt-1.5 text-xs text-white/90 font-medium tabular-nums">
+                  <span>{formatDuration(Math.floor(currentTime))}</span>
+                  <span>{videoDuration ? formatDuration(Math.floor(videoDuration)) : "--"}</span>
+                </div>
+
+                {/* Mute / fullscreen — separate row below the progress bar,
+                    only visible on hover, so it never sits on top of the slider */}
+                <div className="flex items-center justify-between mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={toggleMute} className="text-white hover:text-white/80 transition-colors">
                     {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                   </button>
@@ -358,7 +430,7 @@ export default function CourseDetailPage() {
                   <div className="relative w-10 h-10 rounded-full overflow-hidden bg-secondary flex-shrink-0">
                     {course.uploaded_by.avatar_url ? (
                       <Image
-                        src={course.uploaded_by.avatar_url}
+                        src={getMediaUrl(course.uploaded_by.avatar_url)}
                         alt={course.uploaded_by.full_name || "Murabbiy"}
                         fill
                         className="object-cover"
@@ -417,5 +489,13 @@ export default function CourseDetailPage() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function CourseDetailPage() {
+  return (
+    <LanguageProvider>
+      <CourseDetailContent />
+    </LanguageProvider>
   )
 }

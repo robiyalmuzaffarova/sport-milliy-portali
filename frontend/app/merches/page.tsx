@@ -1,8 +1,9 @@
 "use client"
 import Link from "next/link"
+import Image from "next/image"
 import { merchApi, cartApi } from "@/lib/api/client"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingBag, Percent, LayoutGrid, List, Sparkles, Loader2 } from "lucide-react"
+import { ShoppingBag, Percent, LayoutGrid, List, Sparkles, Loader2, ArrowRight } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -252,32 +253,95 @@ function MerchesContent() {
             </div>
           </motion.div>
 
-          {/* Promo Cards */}
+          {/* Promo Cards - glass effect with image background, same treatment as
+              the AI Buddy / Kurslar cards on the home page */}
           <div className="grid md:grid-cols-2 gap-4 mt-8">
-            <Link href="/merches/discount">
-              <div className="p-6 rounded-3xl gradient-warm text-white cursor-pointer">
-                <Percent className="w-6 h-6 mb-4" />
-                <h3 className="font-semibold text-lg">50% gacha chegirma</h3>
-                <p className="mt-1.5 opacity-70 text-sm">Tanlangan mahsulotlarga maxsus aksiya</p>
-                <div className="mt-3">
-                  <span className="inline-flex items-center px-4 py-2 rounded-full bg-white text-warm text-sm font-medium">
-                    Ko'rish
-                  </span>
+            {/* Discount Card */}
+            <Link href="/merches/discount" className="h-full">
+              <motion.div
+                className="relative rounded-3xl overflow-hidden h-full min-h-[220px] cursor-pointer hover:shadow-lg transition-shadow"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -4 }}
+              >
+                {/* Background Image */}
+                <div className="absolute inset-0 z-0">
+                  <Image
+                    src="/discount.jpg"
+                    alt="50% gacha chegirma"
+                    fill
+                    className="object-cover"
+                  />
+                  {/* Brown/warm overlay for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-amber-950/95 via-amber-900/85 to-amber-800/70" />
                 </div>
-              </div>
+
+                {/* Content */}
+                <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <Percent className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <ArrowRight className="w-5 h-5 text-white -rotate-45" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-lg text-white leading-tight">
+                      50% gacha chegirma
+                    </h3>
+                    <p className="text-sm text-white/80 leading-relaxed">
+                      Tanlangan mahsulotlarga maxsus aksiya
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
             </Link>
 
-            <Link href="/merches/new">
-              <div className="p-6 rounded-3xl gradient-sport text-white cursor-pointer">
-                <Sparkles className="w-6 h-6 mb-4" />
-                <h3 className="font-semibold text-lg">Yangi kelganlar</h3>
-                <p className="mt-1.5 opacity-70 text-sm">Eng so'nggi sport jihozlari kolleksiyasi</p>
-                <div className="mt-3">
-                  <span className="inline-flex items-center px-4 py-2 rounded-full bg-white text-sport text-sm font-medium">
-                    Ko'rish
-                  </span>
+            {/* New Arrivals Card */}
+            <Link href="/merches/new" className="h-full">
+              <motion.div
+                className="relative rounded-3xl overflow-hidden h-full min-h-[220px] cursor-pointer hover:shadow-lg transition-shadow"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -4 }}
+              >
+                {/* Background Image */}
+                <div className="absolute inset-0 z-0">
+                  <Image
+                    src="/new-arrivals.jpg"
+                    alt="Yangi kelganlar"
+                    fill
+                    className="object-cover"
+                  />
+                  {/* Green overlay for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-green-950/95 via-green-900/85 to-green-800/70" />
                 </div>
-              </div>
+
+                {/* Content */}
+                <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <ArrowRight className="w-5 h-5 text-white -rotate-45" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-lg text-white leading-tight">
+                      Yangi kelganlar
+                    </h3>
+                    <p className="text-sm text-white/80 leading-relaxed">
+                      Eng so'nggi sport jihozlari kolleksiyasi
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
             </Link>
           </div>
         </div>

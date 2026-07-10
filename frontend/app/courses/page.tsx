@@ -20,7 +20,7 @@ import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { PillButton } from "@/components/ios/pill-button"
 import { LanguageProvider } from "@/lib/i18n/language-context"
-import { coursesApi, Course, SportType, triggerBlobDownload } from "@/lib/api/courses-client"
+import { coursesApi, Course, SportType, triggerBlobDownload, getMediaUrl } from "@/lib/api/courses-client"
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -67,7 +67,7 @@ function CourseCard({ course, onQrDownload }: {
         <div className="relative aspect-video bg-secondary overflow-hidden">
           {course.thumbnail_url ? (
             <Image
-              src={course.thumbnail_url}
+              src={getMediaUrl(course.thumbnail_url)}
               alt={course.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-500"
