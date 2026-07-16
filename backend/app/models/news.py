@@ -15,12 +15,6 @@ class NewsCategory(str, enum.Enum):
     NEWS = "NEWS"
     INTERVIEW = "INTERVIEW"
     HEALTH = "HEALTH"
-    FOOTBALL = "FOOTBALL"
-    BOXING = "BOXING"
-    WRESTLING = "WRESTLING"
-    TENNIS = "TENNIS"
-    BASKETBALL = "BASKETBALL"
-    SWIMMING = "SWIMMING"
     GENERAL = "GENERAL"
 
 

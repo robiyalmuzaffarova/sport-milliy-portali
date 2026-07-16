@@ -29,7 +29,10 @@ class Education(BaseModel):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     region = Column(Enum(Region), nullable=False)
-    type = Column(Enum(EducationType), nullable=True)
+    type = Column(
+        Enum(EducationType, values_callable=lambda obj: [e.value for e in obj], name="educationtype"),
+        nullable=True,
+    )
     address = Column(String(500), nullable=True)
     working_hours = Column(String(100), nullable=True)
     image_url = Column(String(500), nullable=True)

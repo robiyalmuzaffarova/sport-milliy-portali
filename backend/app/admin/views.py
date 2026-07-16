@@ -1,5 +1,6 @@
 from sqladmin import ModelView
 import wtforms
+from wtforms.validators import DataRequired
 from starlette.requests import Request
 from app.models.news import News
 from app.models.merch import Merch
@@ -101,12 +102,34 @@ class EducationAdmin(BaseAdminView, model=Education):
     column_list = [Education.id, Education.name, Education.region, Education.address, Education.created_at]
     column_searchable_list = [Education.name, Education.description, Education.address]
     column_sortable_list = [Education.id, Education.name, Education.created_at]
-    column_filters = [Education.region]
+    column_filters = [Education.region, Education.type]
+    form_overrides = {
+        "type": wtforms.SelectField,
+    }
     form_columns = [Education.name, Education.description, Education.region, Education.address,
-                    Education.working_hours, Education.image_url]
+                    Education.type, Education.working_hours, Education.image_url]
+    form_args = {
+        "type": {
+            "choices": [
+                ("academy", "Akademiya"),
+                ("federation", "Federatsiya"),
+                ("school", "Maktab"),
+                ("club", "Club"),
+            ],
+            "validators": [DataRequired(message="Educational institution type is required.")]
+        }
+    }
     column_formatters = {
         Education.description: lambda m, a: (m.description[:100] + "...") if m.description and len(m.description) > 100 else m.description,
     }
+    async def on_model_change(self, data: dict, model, is_created: bool, request) -> None:
+        education_type = data.get("type")
+        if education_type is not None:
+            normalized_type = str(education_type).strip().lower()
+            if normalized_type:
+                data["type"] = normalized_type
+                model.type = normalized_type
+
     page_size = 20
     page_size_options = [10, 20, 50, 100]
     can_export = True
