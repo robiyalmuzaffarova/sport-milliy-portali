@@ -157,7 +157,7 @@ function HomeContent() {
           isVerified: Boolean(user.is_verified),
           isTopWeek: Boolean(user.is_top_week),
         }))
-        setWeekAthletes(transformed.length > 0 ? transformed.slice(0, 5) : weekAthletes)
+        setWeekAthletes(transformed.length > 0 ? transformed.slice(0, 4) : weekAthletes)
         
         // Set avatars for the 2450+ section from all fetched athletes
         const avatars = transformed.map((athlete: any) => ({

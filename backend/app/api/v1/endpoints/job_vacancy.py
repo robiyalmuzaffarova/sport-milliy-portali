@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from typing import Optional
+from typing import List, Optional
 
 from app.db.session import get_db
 from app.models.user import User
-from app.models.job_vacancy import JobVacancy
+from app.models.job_vacancy import JobVacancy, EmploymentType, JobSportType
+from app.models.education import Region
 from app.schemas.job_vacancy import (
     JobVacancyCreate,
     JobVacancyUpdate,
@@ -28,6 +29,9 @@ async def get_job_vacancy_list(
         limit: int = Query(10, ge=1, le=100),
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
+        region: Optional[List[Region]] = Query(None),
+        employment_type: Optional[List[EmploymentType]] = Query(None),
+        sport_type: Optional[List[JobSportType]] = Query(None),
         db: AsyncSession = Depends(get_db)
 ):
     """
@@ -37,6 +41,11 @@ async def get_job_vacancy_list(
     - **limit**: Maximum number of records to return
     - **is_active**: Filter by active status
     - **search**: Search in title, description, and company
+    - **region**: Filter by one or more regions — accepts repeated query params
+      (e.g. ?region=andijan&region=bukhara), matching the frontend's checkbox
+      multi-select. A single value still works fine too.
+    - **employment_type**: Filter by one or more employment types (full_time/part_time/contract)
+    - **sport_type**: Filter by one or more sport types (football/kurash/tennis/...)
     """
     query = select(JobVacancy)
 
@@ -50,6 +59,17 @@ async def get_job_vacancy_list(
             (JobVacancy.description.ilike(f"%{search}%")) |
             (JobVacancy.company.ilike(f"%{search}%"))
         )
+
+    # .in_() naturally handles both a single selected value and multiple —
+    # no need to branch on len(region) == 1 vs > 1.
+    if region:
+        query = query.where(JobVacancy.region.in_(region))
+
+    if employment_type:
+        query = query.where(JobVacancy.employment_type.in_(employment_type))
+
+    if sport_type:
+        query = query.where(JobVacancy.sport_type.in_(sport_type))
 
     # Get total count
     count_query = select(func.count()).select_from(query.subquery())
@@ -114,7 +134,10 @@ async def create_job_vacancy(
     - **title**: Job title
     - **description**: Job description
     - **company**: Company name
-    - **location**: Job location
+    - **location**: Job location (free-text address/detail)
+    - **region**: Structured region for filtering
+    - **employment_type**: full_time / part_time / contract
+    - **sport_type**: football / kurash / tennis / ...
     - **salary_range**: Salary range information
     - **contact**: Contact information
     - **is_active**: Active status

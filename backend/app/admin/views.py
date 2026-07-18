@@ -140,14 +140,21 @@ class JobVacancyAdmin(BaseAdminView, model=JobVacancy):
     name = "Job Vacancy"
     name_plural = "Job Vacancies"
     icon = "fa-solid fa-briefcase"
-    column_list = [JobVacancy.id, JobVacancy.title, JobVacancy.company, JobVacancy.image_url,
-                   JobVacancy.location, JobVacancy.is_active, JobVacancy.created_at]
+    column_list = [JobVacancy.id, JobVacancy.title, JobVacancy.company, JobVacancy.region,
+                   JobVacancy.employment_type, JobVacancy.sport_type, JobVacancy.location,
+                   JobVacancy.is_active, JobVacancy.created_at]
     column_searchable_list = [JobVacancy.title, JobVacancy.description, JobVacancy.company]
     column_sortable_list = [JobVacancy.id, JobVacancy.title, JobVacancy.created_at]
     column_default_sort = [(JobVacancy.created_at, True)]
-    column_filters = [JobVacancy.is_active, JobVacancy.location]
+    column_filters = [JobVacancy.is_active, JobVacancy.location, JobVacancy.region,
+                       JobVacancy.employment_type, JobVacancy.sport_type]
+    # region/employment_type/sport_type are proper SQLAlchemy Enum columns, so sqladmin
+    # generates their dropdowns automatically — no form_overrides/form_args needed here,
+    # unlike Education.type (which is a plain string column with manual choices).
     form_columns = [JobVacancy.title, JobVacancy.description, JobVacancy.company, JobVacancy.image_url,
-                    JobVacancy.location, JobVacancy.salary_range, JobVacancy.contact, JobVacancy.is_active]
+                    JobVacancy.location, JobVacancy.region, JobVacancy.employment_type,
+                    JobVacancy.sport_type, JobVacancy.salary_range, JobVacancy.contact,
+                    JobVacancy.is_active]
     column_formatters = {
         JobVacancy.description: lambda m, a: m.description[:100] + "..." if len(m.description) > 100 else m.description,
         JobVacancy.image_url: lambda m, a: (m.image_url[:40] + "...") if m.image_url and len(m.image_url) > 40 else (m.image_url or "No image"),

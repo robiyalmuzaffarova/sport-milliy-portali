@@ -29,6 +29,113 @@ interface FilterPanelProps {
   className?: string
 }
 
+// Hoisted to module scope so it's a stable component reference across renders.
+// It was previously defined *inside* FilterPanel's body, which meant a brand-new
+// function (and therefore a brand-new component identity, from React's point of
+// view) was created on every render — including every keystroke in the search box.
+// React would then unmount and remount the whole subtree each time, which silently
+// dropped focus from the <input> after every single character typed.
+interface FilterContentProps {
+  searchPlaceholder: string
+  searchValue: string
+  onSearchInputChange: (value: string) => void
+  filterGroups: FilterGroup[]
+  expandedGroups: string[]
+  onToggleGroup: (groupId: string) => void
+  selectedFilters: Record<string, string[]>
+  onFilterToggle: (groupId: string, value: string) => void
+  hasActiveFilters: boolean
+  onClearAll: () => void
+}
+
+function FilterContent({
+  searchPlaceholder,
+  searchValue,
+  onSearchInputChange,
+  filterGroups,
+  expandedGroups,
+  onToggleGroup,
+  selectedFilters,
+  onFilterToggle,
+  hasActiveFilters,
+  onClearAll,
+}: FilterContentProps) {
+  return (
+    <div className="space-y-6">
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder={searchPlaceholder}
+          value={searchValue}
+          onChange={(e) => onSearchInputChange(e.target.value)}
+          className="pl-12 h-12 rounded-2xl bg-input border-border"
+        />
+      </div>
+
+      {/* Filter Groups */}
+      {filterGroups.map((group) => (
+        <div key={group.id} className="border-b border-border pb-4 last:border-0">
+          <button
+            onClick={() => onToggleGroup(group.id)}
+            className="flex items-center justify-between w-full py-2 font-serif font-bold text-foreground"
+          >
+            {group.label}
+            <ChevronDown
+              className={cn("w-5 h-5 transition-transform", expandedGroups.includes(group.id) && "rotate-180")}
+            />
+          </button>
+
+          <AnimatePresence>
+            {expandedGroups.includes(group.id) && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 pt-2">
+                  {group.options.map((option) => {
+                    const isSelected = selectedFilters[group.id]?.includes(option.value)
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => onFilterToggle(group.id, option.value)}
+                        className={cn(
+                          "flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-left transition-colors",
+                          isSelected
+                            ? "bg-sport text-white"
+                            : "bg-secondary hover:bg-secondary/80 text-secondary-foreground",
+                        )}
+                      >
+                        <span className="text-sm">{option.label}</span>
+                        {option.count !== undefined && (
+                          <span className={cn("text-xs", isSelected ? "text-white/80" : "text-muted-foreground")}>
+                            {option.count}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ))}
+
+      {/* Clear Filters */}
+      {hasActiveFilters && (
+        <Button variant="outline" onClick={onClearAll} className="w-full rounded-xl border-border bg-transparent">
+          Filtrlarni tozalash
+        </Button>
+      )}
+    </div>
+  )
+}
+
 export function FilterPanel({
   searchPlaceholder = "Qidirish...",
   filterGroups,
@@ -69,89 +176,28 @@ export function FilterPanel({
     onSearchChange?.("")
   }
 
-  const hasActiveFilters = searchValue || Object.values(selectedFilters).some((values) => values && values.length > 0)
+  const hasActiveFilters = Boolean(searchValue) || Object.values(selectedFilters).some((values) => values && values.length > 0)
 
-  const FilterContent = () => (
-    <div className="space-y-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder={searchPlaceholder}
-          value={searchValue}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          className="pl-12 h-12 rounded-2xl bg-input border-border"
-        />
-      </div>
-
-      {/* Filter Groups */}
-      {filterGroups.map((group) => (
-        <div key={group.id} className="border-b border-border pb-4 last:border-0">
-          <button
-            onClick={() => toggleGroup(group.id)}
-            className="flex items-center justify-between w-full py-2 font-serif font-bold text-foreground"
-          >
-            {group.label}
-            <ChevronDown
-              className={cn("w-5 h-5 transition-transform", expandedGroups.includes(group.id) && "rotate-180")}
-            />
-          </button>
-
-          <AnimatePresence>
-            {expandedGroups.includes(group.id) && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="space-y-2 pt-2">
-                  {group.options.map((option) => {
-                    const isSelected = selectedFilters[group.id]?.includes(option.value)
-                    return (
-                      <button
-                        key={option.value}
-                        onClick={() => handleFilterToggle(group.id, option.value)}
-                        className={cn(
-                          "flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-left transition-colors",
-                          isSelected
-                            ? "bg-sport text-white"
-                            : "bg-secondary hover:bg-secondary/80 text-secondary-foreground",
-                        )}
-                      >
-                        <span className="text-sm">{option.label}</span>
-                        {option.count !== undefined && (
-                          <span className={cn("text-xs", isSelected ? "text-white/80" : "text-muted-foreground")}>
-                            {option.count}
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      ))}
-
-      {/* Clear Filters */}
-      {hasActiveFilters && (
-        <Button variant="outline" onClick={clearAllFilters} className="w-full rounded-xl border-border bg-transparent">
-          Filtrlarni tozalash
-        </Button>
-      )}
-    </div>
-  )
+  // Shared props for both the desktop and mobile instances of FilterContent below.
+  const filterContentProps: FilterContentProps = {
+    searchPlaceholder,
+    searchValue,
+    onSearchInputChange: handleSearchChange,
+    filterGroups,
+    expandedGroups,
+    onToggleGroup: toggleGroup,
+    selectedFilters,
+    onFilterToggle: handleFilterToggle,
+    hasActiveFilters,
+    onClearAll: clearAllFilters,
+  }
 
   return (
     <>
       {/* Desktop Filter Panel */}
       <div className={cn("hidden lg:block", className)}>
         <div className="glass-card rounded-3xl p-6 sticky top-24">
-          <FilterContent />
+          <FilterContent {...filterContentProps} />
         </div>
       </div>
 
@@ -193,7 +239,7 @@ export function FilterPanel({
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <FilterContent />
+                <FilterContent {...filterContentProps} />
               </motion.div>
             </>
           )}

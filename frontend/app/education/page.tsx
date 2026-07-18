@@ -76,19 +76,17 @@ function EducationContent() {
 
   // Build dynamic filters from education data
   const buildDynamicFilters = (educationData: any[]) => {
-    // Count occurrences from actual data
     const typeMap = new Map<string, number>()
     const regionMap = new Map<string, number>()
-    
+
     educationData.forEach(edu => {
       const type = edu.type || "academy"
       typeMap.set(type, (typeMap.get(type) || 0) + 1)
-      
+
       const region = edu.location || "Unknown"
       regionMap.set(region, (regionMap.get(region) || 0) + 1)
     })
 
-    // All education types from backend
     const allTypes = [
       { value: "academy", label: "Akademiya", backendValue: "academy" },
       { value: "federation", label: "Federatsiya", backendValue: "federation" },
@@ -96,7 +94,6 @@ function EducationContent() {
       { value: "club", label: "Club", backendValue: "club" },
     ]
 
-    // All 14 regions from backend with Uzbek translations
     const allRegions = [
       { value: "tashkent-city", label: "Toshkent shahar", backendValue: "tashkent city" },
       { value: "tashkent-region", label: "Toshkent viloyat", backendValue: "tashkent region" },
@@ -114,14 +111,12 @@ function EducationContent() {
       { value: "navoiy", label: "Navoi", backendValue: "navoiy" },
     ]
 
-    // Build type options with counts
     const typeOptions = allTypes.map(type => ({
       value: type.value,
       label: type.label,
       count: typeMap.get(type.backendValue) || 0,
     }))
 
-    // Build region options with counts
     const regionOptions = allRegions.map(region => ({
       value: region.value,
       label: region.label,
@@ -146,60 +141,31 @@ function EducationContent() {
     setFilterGroups(dynamicFilters)
   }
 
-  // Fetch all education data on component mount
   const fetchEducationData = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      console.log("📍 Starting education data fetch...");
-
-      // Fetch all education data
       let response;
       try {
-        console.log("🔄 Calling educationApi.getAll(0, 100) - Limit must be between 1-100");
         response = await educationApi.getAll(0, 100)
-        console.log("📦 API Response received:", {
-          response: response,
-          hasItems: !!response?.items,
-          itemsArray: Array.isArray(response?.items),
-          itemsLength: response?.items?.length,
-          responseKeys: response ? Object.keys(response) : [],
-          responseType: typeof response,
-        });
       } catch (apiError) {
-        console.error("❌ API call failed:", apiError);
         response = null
       }
 
       if (response && response.items && Array.isArray(response.items) && response.items.length > 0) {
-        console.log("✅ Valid API data found, transforming...", response.items.length, "items");
         const transformedData = response.items.map(transformEducationData)
-        console.log("📊 Sample transformed education item:", transformedData[0])
-        console.log("📊 All education locations:", transformedData.map((e: any) => e.location))
-        console.log("📊 All education types:", transformedData.map((e: any) => e.type))
         setAllEducation(transformedData)
         setEducation(transformedData)
         setTotalCount(response.total || transformedData.length)
         buildDynamicFilters(transformedData)
-        console.log("✅ Successfully loaded API data:", transformedData.length, "items");
       } else {
-        console.log("ℹ️ No valid API data - Response structure:", {
-          hasResponse: !!response,
-          hasItems: !!response?.items,
-          isArray: Array.isArray(response?.items),
-          length: response?.items?.length,
-        });
-        console.log("ℹ️ Falling back to mock education data");
         setAllEducation(mockEducationData)
         setEducation(mockEducationData)
         setTotalCount(mockEducationData.length)
         buildDynamicFilters(mockEducationData)
       }
     } catch (err: any) {
-      console.error("❌ Exception during fetch:", err?.message, err);
-      // Use mock data as fallback on any error
-      console.log("ℹ️ Using mock education data as fallback");
       setAllEducation(mockEducationData)
       setEducation(mockEducationData)
       setTotalCount(mockEducationData.length)
@@ -210,48 +176,38 @@ function EducationContent() {
     }
   }
 
-  // Fetch data on mount
   useEffect(() => {
     if (!isMounted) return
     fetchEducationData()
   }, [isMounted])
 
-  // Apply filters to education data
   useEffect(() => {
     let filtered = allEducation
 
-    // Search filter - match name or description
     if (searchQuery) {
       filtered = filtered.filter((edu) =>
         edu.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         edu.description.toLowerCase().includes(searchQuery.toLowerCase())
       )
-      console.log("🔍 Search filter applied:", searchQuery, "Result:", filtered.length)
     }
 
-    // Type filter - exact match with education type
     if (selectedFilters.type && selectedFilters.type.length > 0) {
       filtered = filtered.filter((edu) => {
         const eduType = edu.type?.toLowerCase() || "academy"
         return selectedFilters.type.includes(eduType)
       })
-      console.log("🏷️ Type filter applied:", selectedFilters.type, "Result:", filtered.length)
     }
 
-    // Region filter - match location with proper normalization
     if (selectedFilters.region && selectedFilters.region.length > 0) {
       filtered = filtered.filter((edu) => {
         const eduLocation = edu.location?.toLowerCase().replace(/\s+/g, "-") || ""
-        // Check if edu's location matches any selected region
         return selectedFilters.region.some(selectedRegion => {
           const selectedRegionNorm = selectedRegion.toLowerCase().replace(/\s+/g, "-")
           return eduLocation === selectedRegionNorm
         })
       })
-      console.log("📍 Region filter applied:", selectedFilters.region, "Result:", filtered.length)
     }
 
-    console.log("✅ Final filtered results:", filtered.length, "items from", allEducation.length)
     setEducation(filtered)
   }, [selectedFilters, searchQuery, allEducation])
 
@@ -260,110 +216,119 @@ function EducationContent() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary">
-      <Header />
+    <div
+      className="min-h-screen relative bg-fixed bg-cover bg-center"
+      style={{ backgroundImage: "url('/stadium-bg.jpg')" }}
+    >
+      {/* Dark overlay so glass panels/cards + text stay legible over the photo */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80 pointer-events-none" />
 
-      {/* Hero Banner */}
-      <section className="relative pt-24 pb-16 bg-primary overflow-hidden">
-        <FloatingElement className="top-20 right-[10%] opacity-20" delay={0}>
-          <div className="w-28 h-28 rounded-2xl bg-accent/30 rotate-6" />
-        </FloatingElement>
+      <div className="relative z-10">
+        <Header />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h1 className="font-serif font-bold text-4xl md:text-5xl text-primary-foreground">{t.nav.education}</h1>
-            <p className="text-primary-foreground/70 mt-3 max-w-xl">
-              Sport akademiyalari va federatsiyalarini toping, professional ta&apos;lim oling
-            </p>
-          </motion.div>
-        </div>
-      </section>
+        {/* Hero Banner — now transparent, photo shows through */}
+        <section className="relative pt-24 pb-16 overflow-hidden">
+          <FloatingElement className="top-20 right-[10%] opacity-20" delay={0}>
+            <div className="w-28 h-28 rounded-2xl bg-white/10 backdrop-blur-sm rotate-6" />
+          </FloatingElement>
 
-      {/* Main Content */}
-      <section className="py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Filters */}
-            <div className="lg:w-80 flex-shrink-0">
-              <div className="sticky top-28">
-                <IOSFilterPanel
-                  searchPlaceholder="Akademiya qidirish..."
-                  searchValue={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  filterGroups={filterGroups}
-                  selectedFilters={selectedFilters}
-                  onFilterChange={handleFilterChange}
-                  onClearAll={() => {
-                    setSelectedFilters({})
-                    setSearchQuery("")
-                  }}
-                />
-              </div>
-            </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+              <h1 className="font-serif font-bold text-4xl md:text-5xl text-white drop-shadow-lg">
+                {t.nav.education}
+              </h1>
+              <p className="text-white/80 mt-3 max-w-xl">
+                Sport akademiyalari va federatsiyalarini toping, professional ta&apos;lim oling
+              </p>
+            </motion.div>
+          </div>
+        </section>
 
-            {/* Education Grid */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-6">
-                {isLoading ? (
-                  <p className="text-muted-foreground">
-                    <span className="inline-block w-16 h-5 bg-muted rounded animate-pulse"></span>
-                  </p>
-                ) : error ? (
-                  <p className="text-amber-600 font-medium text-sm">
-                    ⚠️ Akademiyalar ehtiyot ma'lumotlari bilan ko'rsatilmoqda
-                  </p>
-                ) : education.length === 0 ? (
-                  <p className="text-muted-foreground">
-                    Akademiya topilmadi
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground">
-                    <span className="font-semibold text-foreground">{education.length}</span> muassasa topildi
-                  </p>
-                )}
+        {/* Main Content */}
+        <section className="py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Filters */}
+              <div className="lg:w-80 flex-shrink-0">
+                <div className="sticky top-28">
+                  <IOSFilterPanel
+                    searchPlaceholder="Akademiya qidirish..."
+                    searchValue={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    filterGroups={filterGroups}
+                    selectedFilters={selectedFilters}
+                    onFilterChange={handleFilterChange}
+                    onClearAll={() => {
+                      setSelectedFilters({})
+                      setSearchQuery("")
+                    }}
+                  />
+                </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                {isLoading ? (
-                  // Loading skeleton
-                  Array.from({ length: 4 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="group bg-card rounded-3xl overflow-hidden h-96 animate-pulse"
-                    >
-                      <div className="w-full h-1/2 bg-muted"></div>
-                      <div className="p-5 space-y-4">
-                        <div className="h-4 bg-muted rounded w-3/4"></div>
-                        <div className="h-3 bg-muted rounded w-full"></div>
-                        <div className="h-3 bg-muted rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  ))
-                ) : education.length > 0 ? (
-                  education.map((item, index) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: index * 0.05 }}
-                    >
-                      <EducationCard {...item} />
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className="col-span-2 text-center py-12">
-                    <p className="text-muted-foreground text-lg">
-                      Hech qanday muassasa topilmadi
+              {/* Education Grid */}
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-6">
+                  {isLoading ? (
+                    <p className="text-white/70">
+                      <span className="inline-block w-16 h-5 bg-white/20 rounded animate-pulse"></span>
                     </p>
-                  </div>
-                )}
+                  ) : error ? (
+                    <p className="text-amber-300 font-medium text-sm">
+                      ⚠️ Akademiyalar ehtiyot ma'lumotlari bilan ko'rsatilmoqda
+                    </p>
+                  ) : education.length === 0 ? (
+                    <p className="text-white/70">
+                      Akademiya topilmadi
+                    </p>
+                  ) : (
+                    <p className="text-white/80">
+                      <span className="font-semibold text-white">{education.length}</span> muassasa topildi
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  {isLoading ? (
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="group bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl overflow-hidden h-96 animate-pulse"
+                      >
+                        <div className="w-full h-1/2 bg-white/10"></div>
+                        <div className="p-5 space-y-4">
+                          <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                          <div className="h-3 bg-white/10 rounded w-full"></div>
+                          <div className="h-3 bg-white/10 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : education.length > 0 ? (
+                    education.map((item, index) => (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.05 }}
+                      >
+                        <EducationCard {...item} />
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="col-span-2 text-center py-12">
+                      <p className="text-white/70 text-lg">
+                        Hech qanday muassasa topilmadi
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   )
 }

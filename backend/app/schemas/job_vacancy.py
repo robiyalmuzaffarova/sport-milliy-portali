@@ -2,6 +2,9 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
+from app.models.job_vacancy import EmploymentType, JobSportType
+from app.models.education import Region
+
 
 class JobVacancyBase(BaseModel):
     """Base job vacancy schema"""
@@ -10,6 +13,9 @@ class JobVacancyBase(BaseModel):
     company: str = Field(..., min_length=1, max_length=255)
     image_url: Optional[str] = Field(None, max_length=500)
     location: Optional[str] = Field(None, max_length=255)
+    region: Optional[Region] = None
+    employment_type: Optional[EmploymentType] = None
+    sport_type: Optional[JobSportType] = None
     salary_range: Optional[str] = Field(None, max_length=100)
     contact: str = Field(..., max_length=255)
     is_active: bool = True
@@ -27,6 +33,9 @@ class JobVacancyUpdate(BaseModel):
     company: Optional[str] = Field(None, min_length=1, max_length=255)
     image_url: Optional[str] = Field(None, max_length=500)
     location: Optional[str] = Field(None, max_length=255)
+    region: Optional[Region] = None
+    employment_type: Optional[EmploymentType] = None
+    sport_type: Optional[JobSportType] = None
     salary_range: Optional[str] = Field(None, max_length=100)
     contact: Optional[str] = Field(None, max_length=255)
     is_active: Optional[bool] = None
