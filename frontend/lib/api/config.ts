@@ -1,5 +1,11 @@
+// NEXT_PUBLIC_API_URL is expected to include the /api/v1 suffix (same
+// convention as lib/api/client.ts and lib/api/courses-client.ts). API_ENDPOINTS
+// below already hardcode the /api/v1/... prefix in each path, so it's stripped
+// back off here before use to avoid a duplicated /api/v1/api/v1/... URL.
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
+  BASE_URL: RAW_API_URL.replace(/\/api\/v1\/?$/, ''),
   TIMEOUT: 10000,
 }
 
