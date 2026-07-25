@@ -8,14 +8,20 @@ import Link from "next/link"
 import {
   Mail, Phone, MapPin, Calendar, Award, Trophy, Star, Settings, Edit, Camera,
   ChevronRight, Upload, Clock, CheckCircle2, XCircle, PlayCircle, AlertTriangle,
-  Filter, Eye, ShieldCheck,
+  Filter, Eye, ShieldCheck, ImagePlus,
 } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { usersApi } from "@/lib/api/client"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog"
+import { usersApi, achievementsApi, galleryApi } from "@/lib/api/client"
 import {
   coursesApi,
   canUploadCourses,
@@ -25,12 +31,11 @@ import {
   AdminStatusFilter,
 } from "@/lib/api/courses-client"
 
-const mockAchievements = [
-  { id: "1", title: "Osiyo o'yinlari - Oltin", year: "2024", icon: Trophy },
-  { id: "2", title: "Jahon chempionati - Kumush", year: "2023", icon: Award },
-  { id: "3", title: "O'zbekiston chempioni", year: "2023", icon: Star },
-  { id: "4", title: "Yoshlar orasida chempion", year: "2022", icon: Award },
-]
+// Which lucide icon to render for a given achievement icon_type from the backend
+const ACHIEVEMENT_ICONS: Record<string, any> = { trophy: Trophy, medal: Award, star: Star }
+function achievementIcon(iconType: string) {
+  return ACHIEVEMENT_ICONS[iconType] || Trophy
+}
 
 // ── Status badge ────────────────────────────────────────────────────────────────
 
@@ -285,6 +290,26 @@ function ProfileContent() {
   const [moderationLoading, setModerationLoading] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
+  // Achievements (real data from the achievements table)
+  const [achievements, setAchievements] = useState<any[]>([])
+  const [achievementsLoading, setAchievementsLoading] = useState(true)
+
+  // Gallery (real data from the gallery_photos table)
+  const [galleryPhotos, setGalleryPhotos] = useState<any[]>([])
+  const [galleryLoading, setGalleryLoading] = useState(true)
+  const [galleryUploading, setGalleryUploading] = useState(false)
+
+  // Edit profile modal (Umumiy: phone/location/bio/avatar)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ phone: "", location: "", bio: "" })
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState("")
+
+  // Verification (athlete/trainer identity check)
+  const [verificationUploading, setVerificationUploading] = useState(false)
+  const [verificationError, setVerificationError] = useState("")
+
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
@@ -305,6 +330,89 @@ function ProfileContent() {
     }
     fetchCurrentUser()
   }, [router])
+
+  // Once we know who the user is, load their real achievements + gallery.
+  // Both are public endpoints keyed by user_id - a user with no entries just
+  // gets an empty array back, not an error.
+  useEffect(() => {
+    if (!currentUser?.id) return
+
+    achievementsApi.getByUser(currentUser.id)
+      .then((data: any) => setAchievements(data.items || []))
+      .catch((err: any) => console.error("Failed to load achievements:", err))
+      .finally(() => setAchievementsLoading(false))
+
+    galleryApi.getByUser(currentUser.id)
+      .then((data: any) => setGalleryPhotos(data.items || []))
+      .catch((err: any) => console.error("Failed to load gallery:", err))
+      .finally(() => setGalleryLoading(false))
+  }, [currentUser?.id])
+
+  const openEditModal = () => {
+    setEditForm({
+      phone: currentUser.phone || "",
+      location: currentUser.location || "",
+      bio: currentUser.bio || "",
+    })
+    setEditAvatarFile(null)
+    setEditError("")
+    setEditOpen(true)
+  }
+
+  const handleSaveProfile = async () => {
+    const token = localStorage.getItem("access_token")
+    if (!token) return
+    setEditSaving(true)
+    setEditError("")
+    try {
+      let updated = await usersApi.updateMe(editForm, token)
+      if (editAvatarFile) {
+        updated = await usersApi.uploadAvatar(editAvatarFile, token)
+      }
+      setCurrentUser(updated)
+      setEditOpen(false)
+    } catch (err: any) {
+      setEditError(err.message || "Saqlashda xatolik yuz berdi")
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const handleVerificationUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const token = localStorage.getItem("access_token")
+    if (!token) return
+    setVerificationUploading(true)
+    setVerificationError("")
+    try {
+      const updated = await usersApi.uploadVerificationDocument(file, token)
+      setCurrentUser(updated)
+    } catch (err: any) {
+      setVerificationError(err.message || "Yuklashda xatolik yuz berdi")
+    } finally {
+      setVerificationUploading(false)
+      e.target.value = ""
+    }
+  }
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const token = localStorage.getItem("access_token")
+    if (!token) return
+    setGalleryUploading(true)
+    try {
+      const photo = await galleryApi.upload(file, token)
+      setGalleryPhotos((prev) => [photo, ...prev])
+    } catch (err) {
+      console.error("Gallery upload failed:", err)
+      alert(err instanceof Error ? err.message : "Yuklashda xatolik yuz berdi")
+    } finally {
+      setGalleryUploading(false)
+      e.target.value = ""
+    }
+  }
 
   // Lazy-load "My Courses" the first time that tab is opened
   const loadMyCourses = useCallback(async () => {
@@ -434,7 +542,7 @@ function ProfileContent() {
 
       {/* Cover Image */}
       <div className="relative h-64 md:h-80">
-        <Image src={currentUser.avatar_url || "/placeholder.svg"} alt="Cover" fill className="object-cover" />
+        <Image src={currentUser.avatar_url ? getMediaUrl(currentUser.avatar_url) : "/placeholder.svg"} alt="Cover" fill className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-secondary via-transparent to-transparent" />
         <button className="absolute top-24 right-4 p-2 rounded-xl glass text-white hover:bg-white/20">
           <Camera className="w-5 h-5" />
@@ -447,7 +555,7 @@ function ProfileContent() {
           {/* Avatar */}
           <div className="relative">
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden border-4 border-secondary shadow-xl">
-              <Image src={currentUser.avatar_url || "/placeholder.svg"} alt={currentUser.full_name} fill className="object-cover" />
+              <Image src={currentUser.avatar_url ? getMediaUrl(currentUser.avatar_url) : "/placeholder.svg"} alt={currentUser.full_name} fill className="object-cover" />
             </div>
             {currentUser.is_verified && (
               <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-sport flex items-center justify-center border-4 border-secondary">
@@ -475,7 +583,7 @@ function ProfileContent() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="icon" className="rounded-xl bg-card">
+                <Button variant="outline" size="icon" className="rounded-xl bg-card" onClick={openEditModal}>
                   <Settings className="w-5 h-5" />
                 </Button>
                 {canUploadCourses(currentUser.role) && (
@@ -488,7 +596,7 @@ function ProfileContent() {
                     Kurs yuklash
                   </Button>
                 )}
-                <Button className="bg-sport hover:bg-sport/90 text-white rounded-xl gap-2">
+                <Button className="bg-sport hover:bg-sport/90 text-white rounded-xl gap-2" onClick={openEditModal}>
                   <Edit className="w-4 h-4" />
                   Tahrirlash
                 </Button>
@@ -508,13 +616,61 @@ function ProfileContent() {
                 <div className="text-xs text-muted-foreground">Kuzatilayotganlar</div>
               </div>
               <div className="text-center">
-                <div className="font-serif font-bold text-xl text-foreground">{currentUser.achievements_count || 0}</div>
+                <div className="font-serif font-bold text-xl text-foreground">{achievements.length}</div>
                 <div className="text-xs text-muted-foreground">Yutuqlar</div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Verification banner - athletes/trainers only, hidden once verified */}
+      {(currentUser.role === "athlete" || currentUser.role === "trainer") &&
+        currentUser.verification_status !== "verified" && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+          <div className="bg-card rounded-2xl p-5 neu-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                currentUser.verification_status === "rejected" ? "bg-red-100 text-red-600" :
+                currentUser.verification_status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                "bg-sport/10 text-sport"
+              }`}>
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-medium text-card-foreground text-sm">
+                  {currentUser.verification_status === "pending" ? "Profil tekshiruvda" :
+                   currentUser.verification_status === "rejected" ? "Profil tasdiqlanmadi" :
+                   "Profilni tasdiqlang"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {currentUser.verification_status === "pending"
+                    ? "Hujjatingiz ko'rib chiqilmoqda, biroz kuting"
+                    : currentUser.verification_status === "rejected"
+                    ? "Hujjatni qayta yuklab, qayta urinib ko'ring"
+                    : "Pasport yoki guvohnoma rasmini yuklab profilingizni tasdiqlang"}
+                </p>
+                {verificationError && <p className="text-xs text-red-500 mt-1">{verificationError}</p>}
+              </div>
+            </div>
+            {currentUser.verification_status !== "pending" && (
+              <label className="shrink-0">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={handleVerificationUpload}
+                  className="hidden"
+                  disabled={verificationUploading}
+                />
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sport hover:bg-sport/90 text-white text-sm font-medium cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  {verificationUploading ? "Yuklanmoqda..." : "Hujjat yuklash"}
+                </span>
+              </label>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -568,7 +724,7 @@ function ProfileContent() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Telefon</p>
-                      <p className="text-card-foreground">{currentUser.phone_number || "Not set"}</p>
+                      <p className="text-card-foreground">{currentUser.phone || "Not set"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -601,72 +757,125 @@ function ProfileContent() {
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-serif font-bold text-lg text-card-foreground">So&apos;nggi yutuqlar</h3>
-                  <Button variant="ghost" size="sm" className="text-sport">
+                  <Button variant="ghost" size="sm" className="text-sport" onClick={() => setActiveTab("achievements")}>
                     Barchasini ko&apos;rish
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
-                <div className="space-y-3">
-                  {mockAchievements.slice(0, 3).map((achievement) => (
-                    <div
-                      key={achievement.id}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-sport/10 flex items-center justify-center text-sport">
-                        <achievement.icon className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-card-foreground text-sm">{achievement.title}</p>
-                        <p className="text-xs text-muted-foreground">{achievement.year}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {achievementsLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-sport" />
+                  </div>
+                ) : achievements.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">Hali yutuqlar yo&apos;q</p>
+                ) : (
+                  <div className="space-y-3">
+                    {achievements.slice(0, 3).map((achievement) => {
+                      const Icon = achievementIcon(achievement.icon_type)
+                      return (
+                        <div
+                          key={achievement.id}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-sport/10 flex items-center justify-center text-sport">
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-card-foreground text-sm">{achievement.title}</p>
+                            <p className="text-xs text-muted-foreground">{achievement.year}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </motion.div>
             </div>
           </TabsContent>
 
           <TabsContent value="achievements" className="mt-6">
-            <div className="grid sm:grid-cols-2 gap-4">
-              {mockAchievements.map((achievement, index) => (
-                <motion.div
-                  key={achievement.id}
-                  className="flex items-center gap-4 p-4 bg-card rounded-2xl neu-card"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-sport/10 flex items-center justify-center text-sport">
-                    <achievement.icon className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h4 className="font-serif font-bold text-card-foreground">{achievement.title}</h4>
-                    <p className="text-sm text-muted-foreground">{achievement.year}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            {achievementsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-sport" />
+              </div>
+            ) : achievements.length === 0 ? (
+              <div className="text-center py-16">
+                <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+                <h3 className="font-serif font-bold text-lg text-card-foreground mb-2">Hali yutuqlar yo&apos;q</h3>
+                <p className="text-muted-foreground text-sm">Musobaqalarda g&apos;alaba qozonganingizda shu yerda ko&apos;rinadi</p>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {achievements.map((achievement, index) => {
+                  const Icon = achievementIcon(achievement.icon_type)
+                  return (
+                    <motion.div
+                      key={achievement.id}
+                      className="flex items-center gap-4 p-4 bg-card rounded-2xl neu-card"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <div className="w-14 h-14 rounded-2xl bg-sport/10 flex items-center justify-center text-sport">
+                        <Icon className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h4 className="font-serif font-bold text-card-foreground">{achievement.title}</h4>
+                        <p className="text-sm text-muted-foreground">{achievement.year}</p>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="gallery" className="mt-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <motion.div
-                  key={i}
-                  className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Image
-                    src={`/uzbek-athlete-training-.jpg?height=300&width=300&query=uzbek athlete training ${i}`}
-                    alt={`Gallery ${i}`}
-                    fill
-                    className="object-cover transition-transform group-hover:scale-110"
-                  />
-                </motion.div>
-              ))}
+            <div className="flex justify-end mb-4">
+              <label>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={handleGalleryUpload}
+                  className="hidden"
+                  disabled={galleryUploading}
+                />
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sport hover:bg-sport/90 text-white text-sm font-medium cursor-pointer">
+                  <ImagePlus className="w-4 h-4" />
+                  {galleryUploading ? "Yuklanmoqda..." : "Rasm qo'shish"}
+                </span>
+              </label>
             </div>
+            {galleryLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-sport" />
+              </div>
+            ) : galleryPhotos.length === 0 ? (
+              <div className="text-center py-16">
+                <ImagePlus className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+                <h3 className="font-serif font-bold text-lg text-card-foreground mb-2">Galereya bo&apos;sh</h3>
+                <p className="text-muted-foreground text-sm">Yuqoridagi tugma orqali birinchi rasmingizni qo&apos;shing</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {galleryPhotos.map((photo, i) => (
+                  <motion.div
+                    key={photo.id}
+                    className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <Image
+                      src={getMediaUrl(photo.image_url)}
+                      alt="Gallery"
+                      fill
+                      className="object-cover transition-transform group-hover:scale-110"
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* ── My Courses (trainer/admin) ──────────────────────────────── */}
@@ -759,6 +968,65 @@ function ProfileContent() {
           )}
         </Tabs>
       </div>
+
+      {/* Edit profile modal - phone/location/bio/avatar, PUT /api/v1/users/me */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Profilni tahrirlash</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {editError && <p className="text-sm text-red-500">{editError}</p>}
+
+            <div className="space-y-2">
+              <Label>Profil rasmi</Label>
+              <Input
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={(e) => setEditAvatarFile(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Telefon</Label>
+              <Input
+                id="edit-phone"
+                value={editForm.phone}
+                onChange={(e) => setEditForm((p) => ({ ...p, phone: e.target.value }))}
+                placeholder="+998 90 123 45 67"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-location">Manzil</Label>
+              <Input
+                id="edit-location"
+                value={editForm.location}
+                onChange={(e) => setEditForm((p) => ({ ...p, location: e.target.value }))}
+                placeholder="Toshkent"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-bio">Bio</Label>
+              <Textarea
+                id="edit-bio"
+                value={editForm.bio}
+                onChange={(e) => setEditForm((p) => ({ ...p, bio: e.target.value }))}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editSaving}>
+              Bekor qilish
+            </Button>
+            <Button onClick={handleSaveProfile} disabled={editSaving} className="bg-sport hover:bg-sport/90 text-white">
+              {editSaving ? "Saqlanmoqda..." : "Saqlash"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

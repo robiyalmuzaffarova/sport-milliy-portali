@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { authApi } from "@/lib/api/client"
+import { authApi, usersApi } from "@/lib/api/client"
 
 function RegisterContent() {
   const { t } = useLanguage()
@@ -32,6 +32,7 @@ function RegisterContent() {
     password: "",
     userType: "",
     sportType: "",
+    sportTypeCustom: "",
   })
 
   useEffect(() => {
@@ -82,7 +83,8 @@ function RegisterContent() {
     // Validate second step
     // Sport type is only required for athletes and trainers, not observers
     const requiresSportType = formData.userType === "athlete" || formData.userType === "trainer"
-    if (!formData.password || !formData.userType || (requiresSportType && !formData.sportType)) {
+    const effectiveSportType = formData.sportType === "other" ? formData.sportTypeCustom : formData.sportType
+    if (!formData.password || !formData.userType || (requiresSportType && !effectiveSportType)) {
       setError("Iltimos, barcha maydonlarni to'ldiring")
       return
     }
@@ -95,14 +97,30 @@ function RegisterContent() {
         email: formData.email,
         password: formData.password,
         full_name: formData.fullName,
-        phone_number: formData.phone,
+        phone: formData.phone,
         role: formData.userType,
-        sport_type: formData.sportType,
+        sport_type: effectiveSportType,
       })
 
-      // If registration was successful, redirect to login
+      // If registration was successful, upload the avatar (if one was picked)
+      // before sending the user to log in. Avatar upload needs an access
+      // token, so we log in with the credentials just used to register.
       if (response && response.id) {
-        // User created successfully, redirect to login
+        if (selectedFile) {
+          try {
+            const loginForm = new FormData()
+            loginForm.append("username", formData.email)
+            loginForm.append("password", formData.password)
+            const loginRes = await authApi.login(loginForm)
+            if (loginRes?.access_token) {
+              await usersApi.uploadAvatar(selectedFile, loginRes.access_token)
+            }
+          } catch (avatarErr) {
+            // Avatar upload failing shouldn't block registration - the user
+            // can still add/replace their avatar later from their profile.
+            console.error("Avatar upload after registration failed:", avatarErr)
+          }
+        }
         router.push("/login")
       } else if (response.access_token) {
         // Or if backend returns a token, auto-login
@@ -285,48 +303,59 @@ function RegisterContent() {
                   </div>
 
                   {(formData.userType === "athlete" || formData.userType === "trainer") && (
-                    <>
-                      <div className="space-y-2">
-                        <Label suppressHydrationWarning>Sport turi</Label>
-                        <Select value={formData.sportType} onValueChange={(v) => handleChange("sportType", v)}>
-                          <SelectTrigger className="h-12 rounded-xl">
-                            <SelectValue placeholder="Sport turini tanlang" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="kurash">Kurash</SelectItem>
-                            <SelectItem value="boxing">Boxing</SelectItem>
-                            <SelectItem value="tennis">Tennis</SelectItem>
-                            <SelectItem value="football">Football</SelectItem>
-                            <SelectItem value="swimming">Suzish</SelectItem>
-                            <SelectItem value="gymnastics">Gimnastika</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label suppressHydrationWarning>Hujjatlar</Label>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/png,image/jpeg"
-                          onChange={handleFileChange}
-                          className="hidden"
-                          aria-label="Upload documents"
+                    <div className="space-y-2">
+                      <Label suppressHydrationWarning>Sport turi</Label>
+                      <Select value={formData.sportType} onValueChange={(v) => handleChange("sportType", v)}>
+                        <SelectTrigger className="h-12 rounded-xl">
+                          <SelectValue placeholder="Sport turini tanlang" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="kurash">Kurash</SelectItem>
+                          <SelectItem value="boxing">Boxing</SelectItem>
+                          <SelectItem value="tennis">Tennis</SelectItem>
+                          <SelectItem value="football">Football</SelectItem>
+                          <SelectItem value="swimming">Suzish</SelectItem>
+                          <SelectItem value="gymnastics">Gimnastika</SelectItem>
+                          <SelectItem value="other">Boshqa...</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {formData.sportType === "other" && (
+                        <Input
+                          type="text"
+                          placeholder="Sport turini kiriting"
+                          value={formData.sportTypeCustom}
+                          onChange={(e) => handleChange("sportTypeCustom", e.target.value)}
+                          className="h-12 rounded-xl mt-2"
                         />
-                        <div
-                          onClick={handleFileClick}
-                          className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-sport transition-colors cursor-pointer"
-                        >
-                          <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                          <p className="text-sm text-muted-foreground">
-                            {selectedFile ? selectedFile.name : 'Passport va guvohnoma rasmini yuklang'}
-                            <br />
-                            <span className="text-xs">PNG, JPG - 5MB gacha</span>
-                          </p>
-                        </div>
-                      </div>
-                    </>
+                      )}
+                    </div>
                   )}
+
+                  {/* Avatar is optional for every role - a passport/ID photo is
+                      requested separately, after registration, for profile
+                      verification (see the "Profilni tasdiqlash" banner). */}
+                  <div className="space-y-2">
+                    <Label suppressHydrationWarning>Profil rasmi (ixtiyoriy)</Label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      aria-label="Upload avatar"
+                    />
+                    <div
+                      onClick={handleFileClick}
+                      className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-sport transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {selectedFile ? selectedFile.name : 'Profil rasmini yuklang'}
+                        <br />
+                        <span className="text-xs">PNG, JPG - 5MB gacha</span>
+                      </p>
+                    </div>
+                  </div>
                 </>
               )}
 
