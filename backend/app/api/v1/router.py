@@ -9,7 +9,9 @@ from app.api.v1.endpoints import (
     favorites,
     cart,
     course,
-    ai_buddy
+    ai_buddy,
+    achievements,
+    gallery
 )
 
 api_router = APIRouter()
@@ -31,3 +33,5 @@ api_router.include_router(favorites.router, prefix="/favorites", tags=["Favorite
 api_router.include_router(cart.router, prefix="/cart", tags=["Shopping Cart"])
 api_router.include_router(ai_buddy.router, prefix="/ai-buddy", tags=["AI Buddy"])
 api_router.include_router(course.router, prefix="/courses", tags=["Courses"])
+api_router.include_router(achievements.router, prefix="/achievements", tags=["Achievements"])
+api_router.include_router(gallery.router, prefix="/gallery", tags=["Gallery"])

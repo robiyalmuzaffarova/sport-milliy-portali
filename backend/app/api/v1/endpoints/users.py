@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import Optional
 import bcrypt
 
 from app.db.session import get_db
-from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
+from app.models.user import User, UserRole, VerificationStatus
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse, VerificationUpdate
 from app.core.security import get_current_active_user
 from app.core.permissions import (
     Resource,
@@ -14,8 +14,12 @@ from app.core.permissions import (
     require_permissions,
     require_superuser
 )
+from app.api.v1.endpoints.course import _save_upload, ALLOWED_IMAGE_EXTENSIONS
 
 router = APIRouter()
+
+MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
+MAX_VERIFICATION_DOC_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
 
 
 @router.get("/me", response_model=UserResponse)
@@ -32,20 +36,92 @@ async def update_user_me(
 ):
     """Update current user's profile"""
     update_data = user_data.dict(exclude_unset=True, exclude={'role', 'is_superuser', 'is_active'})
-    
+
     if 'password' in update_data and update_data['password']:
         password_bytes = update_data['password'].encode('utf-8')[:72]
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
         current_user.hashed_password = hashed_password
         del update_data['password']
-    
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
 
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
+
+@router.post("/me/avatar", response_model=UserResponse)
+async def upload_avatar(
+        avatar: UploadFile = File(...),
+        current_user: User = Depends(get_current_active_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    Upload/replace the current user's profile picture. Used both right after
+    registration and later from the profile edit form.
+    """
+    avatar_url = _save_upload(avatar, "avatars", ALLOWED_IMAGE_EXTENSIONS, MAX_AVATAR_SIZE_BYTES)
+    current_user.avatar_url = avatar_url
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.post("/me/verification-document", response_model=UserResponse)
+async def upload_verification_document(
+        document: UploadFile = File(...),
+        current_user: User = Depends(get_current_active_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    Upload a passport/ID photo to request profile verification. Sets
+    verification_status to 'pending' until a superuser approves or rejects it
+    via PATCH /users/{id}/verification.
+    """
+    if current_user.role not in (UserRole.ATHLETE, UserRole.TRAINER):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only athletes and trainers can request profile verification",
+        )
+
+    passport_url = _save_upload(document, "verification", ALLOWED_IMAGE_EXTENSIONS, MAX_VERIFICATION_DOC_SIZE_BYTES)
+    current_user.passport_url = passport_url
+    current_user.verification_status = VerificationStatus.PENDING
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.patch("/{user_id}/verification", response_model=UserResponse, dependencies=[Depends(require_superuser())])
+async def review_verification(
+        user_id: int,
+        data: VerificationUpdate,
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    Superuser approves or rejects a pending profile verification request.
+    MVP moderation - no dedicated admin UI, call this directly (e.g. from
+    Swagger or a future admin panel) with {"status": "verified"} or
+    {"status": "rejected"}.
+    """
+    if data.status not in (VerificationStatus.VERIFIED, VerificationStatus.REJECTED):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="status must be 'verified' or 'rejected'",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user.verification_status = data.status
+    user.is_verified = (data.status == VerificationStatus.VERIFIED)
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
 @router.get("/", response_model=UserListResponse)
@@ -99,7 +175,7 @@ async def create_user(
 ):
     """
     Create a new user (Superuser only)
-    
+
     This endpoint creates users with default values for all optional fields.
     """
     try:
@@ -119,16 +195,16 @@ async def create_user(
             email=user_data.email,
             full_name=user_data.full_name,
             hashed_password=hashed_password,
-            
+
             # Optional profile fields
             phone=user_data.phone,
             bio=user_data.bio,
             sport_type=user_data.sport_type,
             location=user_data.location,
-            
+
             # Role (has default but we can override)
             role=user_data.role if user_data.role else UserRole.OBSERVER,
-            
+
             # These have defaults in the model, but we set them explicitly for clarity
             is_active=True,
             is_verified=False,
@@ -173,14 +249,14 @@ async def update_user(
             raise HTTPException(status_code=400, detail="Cannot remove your own superuser status")
 
     update_data = user_data.dict(exclude_unset=True)
-    
+
     if 'password' in update_data and update_data['password']:
         password_bytes = update_data['password'].encode('utf-8')[:72]
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
         user.hashed_password = hashed_password
         del update_data['password']
-    
+
     for field, value in update_data.items():
         setattr(user, field, value)
 
