@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
 import {
   Mail, Phone, MapPin, Calendar, Award, Trophy, Star, Settings, Edit, Camera,
   ChevronRight, Upload, Clock, CheckCircle2, XCircle, PlayCircle, AlertTriangle,
-  Filter, Eye, ShieldCheck,
+  Filter, Eye, ShieldCheck, Users, UserCheck, Medal,
 } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
@@ -285,6 +285,13 @@ function ProfileContent() {
   const [moderationLoading, setModerationLoading] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
+  // As the page scrolls, the fixed backdrop goes from sharp (header) to softly blurred
+  // and darkened — same treatment as the news/athlete-view pages.
+  const { scrollY } = useScroll()
+  const bgBlurPx = useTransform(scrollY, [0, 480], [0, 22])
+  const bgFilter = useTransform(bgBlurPx, (v) => `blur(${v}px)`)
+  const overlayOpacity = useTransform(scrollY, [0, 480], [0.4, 0.68])
+
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
@@ -394,11 +401,12 @@ function ProfileContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-secondary flex items-center justify-center">
+      <div className="relative min-h-screen flex items-center justify-center">
+        <div className="fixed inset-0 -z-20 bg-gradient-to-br from-primary via-primary/95 to-sport/50" />
         <Header />
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-sport mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Profil yuklanmoqda...</p>
+          <p className="text-white/80">Profil yuklanmoqda...</p>
         </div>
       </div>
     )
@@ -406,10 +414,11 @@ function ProfileContent() {
 
   if (error || !currentUser) {
     return (
-      <div className="min-h-screen bg-secondary flex items-center justify-center">
+      <div className="relative min-h-screen flex items-center justify-center">
+        <div className="fixed inset-0 -z-20 bg-gradient-to-br from-primary via-primary/95 to-sport/50" />
         <Header />
         <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
+          <p className="text-red-300 mb-4">{error}</p>
           <Button onClick={() => router.push("/login")} className="bg-sport">
             Login
           </Button>
@@ -429,97 +438,124 @@ function ProfileContent() {
   ]
 
   return (
-    <div className="min-h-screen bg-secondary">
+    <div className="relative min-h-screen">
+      {/* Fixed, page-wide backdrop. If this athlete has uploaded their own cover photo, it's
+          used as the blurred backdrop (sharp at top, blurring/darkening on scroll); otherwise
+          a brand gradient fills the same role — same treatment as the news/athlete-view pages. */}
+      {currentUser.cover_url ? (
+        <>
+          <motion.div className="fixed inset-0 -z-20" style={{ filter: bgFilter }}>
+            <img src={currentUser.cover_url} alt="" className="w-full h-full object-cover object-[50%_30%]" />
+          </motion.div>
+          <div className="fixed inset-0 -z-20 bg-primary/55" />
+          <motion.div className="fixed inset-0 -z-20 bg-primary" style={{ opacity: overlayOpacity }} />
+        </>
+      ) : (
+        <>
+          <div className="fixed inset-0 -z-20 bg-gradient-to-br from-primary via-primary/95 to-sport/50" />
+          <div className="fixed inset-0 -z-20 opacity-[0.15] bg-[radial-gradient(circle_at_15%_25%,white,transparent_45%),radial-gradient(circle_at_85%_15%,white,transparent_35%)]" />
+        </>
+      )}
+      <div className="fixed inset-x-0 bottom-0 h-56 -z-20 bg-gradient-to-b from-transparent to-primary/85" />
+
       <Header />
 
-      {/* Cover Image */}
-      <div className="relative h-64 md:h-80">
-        <Image src={currentUser.avatar_url || "/placeholder.svg"} alt="Cover" fill className="object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-secondary via-transparent to-transparent" />
-        <button className="absolute top-24 right-4 p-2 rounded-xl glass text-white hover:bg-white/20">
-          <Camera className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Profile Header */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
-        <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
-          {/* Avatar */}
-          <div className="relative">
-            <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden border-4 border-secondary shadow-xl">
-              <Image src={currentUser.avatar_url || "/placeholder.svg"} alt={currentUser.full_name} fill className="object-cover" />
-            </div>
-            {currentUser.is_verified && (
-              <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-sport flex items-center justify-center border-4 border-secondary">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            )}
-            <button className="absolute bottom-0 right-0 p-2 rounded-xl bg-card shadow-lg hover:bg-card/80">
+      {/* Profile Header — frosted glass card over the blurred backdrop */}
+      <section className="relative pt-28 md:pt-32 pb-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="ios-glass rounded-3xl p-6 md:p-8 relative"
+          >
+            <button className="absolute top-5 right-5 p-2.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white hover:bg-white/25 transition-colors">
               <Camera className="w-4 h-4" />
             </button>
-          </div>
 
-          {/* Info */}
-          <div className="flex-1">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="font-serif font-bold text-2xl md:text-3xl text-foreground">{currentUser.full_name}</h1>
-                <span className="inline-block mt-1 px-3 py-1 rounded-full bg-sport/10 text-sport text-sm font-medium">
-                  {currentUser.sport_type || "Sport"}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="icon" className="rounded-xl bg-card">
-                  <Settings className="w-5 h-5" />
-                </Button>
-                {canUploadCourses(currentUser.role) && (
-                  <Button
-                    onClick={() => router.push("/courses/upload")}
-                    variant="outline"
-                    className="rounded-xl gap-2 bg-card"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Kurs yuklash
-                  </Button>
+            <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
+              {/* Avatar */}
+              <div className="relative">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden ring-4 ring-white/25 shadow-2xl shadow-black/40">
+                  <Image src={currentUser.avatar_url || "/placeholder.svg"} alt={currentUser.full_name} fill className="object-cover" />
+                </div>
+                {currentUser.is_verified && (
+                  <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-sport flex items-center justify-center ring-4 ring-white/20 shadow-lg">
+                    <UserCheck className="w-4 h-4 text-white" />
+                  </div>
                 )}
-                <Button className="bg-sport hover:bg-sport/90 text-white rounded-xl gap-2">
-                  <Edit className="w-4 h-4" />
-                  Tahrirlash
-                </Button>
+                <button className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors">
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Info */}
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="font-serif font-bold text-2xl md:text-3xl text-white drop-shadow-sm">{currentUser.full_name}</h1>
+                    <span className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-sport/25 backdrop-blur-sm border border-white/10 text-white text-sm font-medium">
+                      <Medal className="w-3.5 h-3.5" />
+                      {currentUser.sport_type || "Sport"}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" className="rounded-xl bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
+                      <Settings className="w-5 h-5" />
+                    </Button>
+                    {canUploadCourses(currentUser.role) && (
+                      <Button
+                        onClick={() => router.push("/courses/upload")}
+                        variant="outline"
+                        className="rounded-xl gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Kurs yuklash
+                      </Button>
+                    )}
+                    <Button className="bg-sport hover:bg-sport/90 text-white rounded-xl gap-2 shadow-lg shadow-sport/30">
+                      <Edit className="w-4 h-4" />
+                      Tahrirlash
+                    </Button>
+                  </div>
+                </div>
+
+                <p className="text-white/80 mt-3 max-w-lg">{currentUser.bio || "Bio not set"}</p>
+
+                {/* Quick Stats — glass pill cards instead of bare numbers */}
+                <div className="flex flex-wrap gap-3 mt-5">
+                  <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
+                    <Users className="w-4 h-4 text-white" />
+                    <div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{currentUser.followers_count || 0}</div>
+                      <div className="text-[11px] text-white/60">Kuzatuvchilar</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
+                    <UserCheck className="w-4 h-4 text-white" />
+                    <div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{currentUser.following_count || 0}</div>
+                      <div className="text-[11px] text-white/60">Kuzatilayotganlar</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
+                    <Trophy className="w-4 h-4 text-white" />
+                    <div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{currentUser.achievements_count || 0}</div>
+                      <div className="text-[11px] text-white/60">Yutuqlar</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <p className="text-muted-foreground mt-3 max-w-lg">{currentUser.bio || "Bio not set"}</p>
-
-            {/* Quick Stats */}
-            <div className="flex gap-6 mt-4">
-              <div className="text-center">
-                <div className="font-serif font-bold text-xl text-foreground">{currentUser.followers_count || 0}</div>
-                <div className="text-xs text-muted-foreground">Kuzatuvchilar</div>
-              </div>
-              <div className="text-center">
-                <div className="font-serif font-bold text-xl text-foreground">{currentUser.following_count || 0}</div>
-                <div className="text-xs text-muted-foreground">Kuzatilayotganlar</div>
-              </div>
-              <div className="text-center">
-                <div className="font-serif font-bold text-xl text-foreground">{currentUser.achievements_count || 0}</div>
-                <div className="text-xs text-muted-foreground">Yutuqlar</div>
-              </div>
-            </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </section>
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-card rounded-2xl p-1 h-auto flex-wrap justify-start">
+          <TabsList className="ios-glass rounded-2xl p-1 h-auto flex-wrap justify-start">
             <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-sport data-[state=active]:text-white">
               Umumiy
             </TabsTrigger>

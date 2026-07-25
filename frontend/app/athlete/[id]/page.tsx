@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, useScroll, useTransform } from "framer-motion"
 import Image from "next/image"
-import { Mail, Phone, MapPin, Calendar, Award, Trophy, Star, Settings, Edit, Camera, ChevronRight, Loader2, ArrowLeft } from "lucide-react"
+import { Mail, Phone, MapPin, Calendar, Award, Trophy, Star, Settings, Edit, Camera, ChevronRight, Loader2, ArrowLeft, UserCheck, Medal, Users } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { usersApi } from "@/lib/api/client"
+
+// Fixed backdrop photo for this page — deliberately different from the news page's photo
+const HERO_BG_IMAGE = "/runners.jpg"
 
 function AthleteProfileContent() {
   const { t } = useLanguage()
@@ -22,6 +25,13 @@ function AthleteProfileContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
+
+  // As the page scrolls, the fixed backdrop photo goes from sharp (header) to softly blurred
+  // and darkened — same treatment as the news/trainers pages.
+  const { scrollY } = useScroll()
+  const bgBlurPx = useTransform(scrollY, [0, 480], [0, 22])
+  const bgFilter = useTransform(bgBlurPx, (v) => `blur(${v}px)`)
+  const overlayOpacity = useTransform(scrollY, [0, 480], [0.4, 0.68])
 
   useEffect(() => {
     async function loadAthlete() {
@@ -62,11 +72,15 @@ function AthleteProfileContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-secondary">
+      <div className="relative min-h-screen">
+        <div className="fixed inset-0 -z-20">
+          <img src={HERO_BG_IMAGE} alt="" className="w-full h-full object-cover object-[50%_30%]" />
+        </div>
+        <div className="fixed inset-0 -z-20 bg-primary/70" />
         <Header />
         <div className="flex flex-col items-center justify-center py-40">
-          <Loader2 className="w-12 h-12 text-sport animate-spin mb-4" />
-          <p className="text-muted-foreground text-lg">Profil yuklanmoqda...</p>
+          <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+          <p className="text-white/80 text-lg">Profil yuklanmoqda...</p>
         </div>
         <Footer />
       </div>
@@ -75,12 +89,16 @@ function AthleteProfileContent() {
 
   if (error || !athlete) {
     return (
-      <div className="min-h-screen bg-secondary">
+      <div className="relative min-h-screen">
+        <div className="fixed inset-0 -z-20">
+          <img src={HERO_BG_IMAGE} alt="" className="w-full h-full object-cover object-[50%_30%]" />
+        </div>
+        <div className="fixed inset-0 -z-20 bg-primary/70" />
         <Header />
         <section className="py-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-3xl font-bold text-foreground mb-4">Profil topilmadi</h1>
-            <p className="text-muted-foreground mb-8">{error || "Kechirasiz, bu sportchini topib bo'lmadi."}</p>
+            <h1 className="text-3xl font-bold text-white mb-4">Profil topilmadi</h1>
+            <p className="text-white/70 mb-8">{error || "Kechirasiz, bu sportchini topib bo'lmadi."}</p>
             <Button 
               onClick={() => router.push('/athletes')}
               className="bg-sport hover:bg-sport/90 text-white"
@@ -113,23 +131,25 @@ function AthleteProfileContent() {
   ]
 
   return (
-    <div className="min-h-screen bg-secondary">
+    <div className="relative min-h-screen">
+      {/* Fixed, page-wide backdrop photo. Sharp at the top, then blurs and darkens as the
+          person scrolls into the tabs/content — same treatment as the news/trainers pages. */}
+      <motion.div className="fixed inset-0 -z-20" style={{ filter: bgFilter }}>
+        <img src={HERO_BG_IMAGE} alt="" className="w-full h-full object-cover object-[50%_30%]" />
+      </motion.div>
+      <div className="fixed inset-0 -z-20 bg-primary/55" />
+      <motion.div className="fixed inset-0 -z-20 bg-primary" style={{ opacity: overlayOpacity }} />
+      <div className="fixed inset-x-0 bottom-0 h-56 -z-20 bg-gradient-to-b from-transparent to-primary/85" />
+
       <Header />
 
-      {/* Back Button */}
-      <section 
-        className="py-4 bg-background border-b border-border sticky top-0 z-40"
-        style={{
-          backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/runners.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
+      {/* Back Button — glass pill instead of its own separate photo banner */}
+      <section className="relative pt-6 pb-2">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <Button
             variant="ghost"
             onClick={() => router.push('/athletes')}
-            className="flex items-center gap-2 text-white hover:text-white/80 hover:bg-white/10"
+            className="flex items-center gap-2 text-white bg-white/10 backdrop-blur-sm border border-white/15 hover:bg-white/20 hover:text-white rounded-full px-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Sportchilarga qaytish
@@ -137,86 +157,81 @@ function AthleteProfileContent() {
         </div>
       </section>
 
-      {/* Cover Image */}
-      <div className="relative h-80 md:h-96 overflow-hidden">
-        <Image 
-          src="/runners.jpg" 
-          alt="Cover" 
-          fill 
-          className="object-cover" 
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/30 to-secondary" />
-      </div>
-
-      {/* Profile Header */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
-            {/* Avatar */}
-            <div className="relative">
-              <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden border-4 border-secondary shadow-xl">
-                <Image 
-                  src={normalizeImageUrl(athlete.avatar_url || "")} 
-                  alt={athlete.full_name} 
-                  fill 
-                  className="object-cover" 
-                />
-              </div>
-              {athlete.is_verified && (
-                <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-sport flex items-center justify-center border-4 border-secondary">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+      {/* Profile Header — frosted glass card over the blurred backdrop */}
+      <section className="relative pt-6 pb-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="ios-glass rounded-3xl p-6 md:p-8"
+          >
+            <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
+              {/* Avatar */}
+              <div className="relative">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden ring-4 ring-white/25 shadow-2xl shadow-black/40">
+                  <Image
+                    src={normalizeImageUrl(athlete.avatar_url || "")}
+                    alt={athlete.full_name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
-              )}
-            </div>
-
-            {/* Info */}
-            <div className="flex-1">
-              <div className="flex items-start justify-between w-full">
-                <div>
-                  <h1 className="font-serif font-bold text-2xl md:text-3xl text-foreground">{athlete.full_name}</h1>
-                  <span className="inline-block mt-1 px-3 py-1 rounded-full bg-sport/10 text-sport text-sm font-medium">
-                    {athlete.sport_type || "Sport"}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon" className="rounded-xl bg-card">
-                    <Settings className="w-5 h-5" />
-                  </Button>
-                </div>
+                {athlete.is_verified && (
+                  <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-sport flex items-center justify-center ring-4 ring-white/20 shadow-lg">
+                    <UserCheck className="w-4 h-4 text-white" />
+                  </div>
+                )}
               </div>
 
-              <p className="text-muted-foreground mt-3 max-w-lg">{athlete.bio || "Professional sportchi o'zbekiston milliy terma jamoasining a'zosi."}</p>
+              {/* Info */}
+              <div className="flex-1">
+                <div className="flex items-start justify-between w-full gap-4">
+                  <div>
+                    <h1 className="font-serif font-bold text-2xl md:text-3xl text-white drop-shadow-sm">{athlete.full_name}</h1>
+                    <span className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-sport/25 backdrop-blur-sm border border-white/10 text-white text-sm font-medium">
+                      <Medal className="w-3.5 h-3.5" />
+                      {athlete.sport_type || "Sport"}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" className="rounded-xl bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
+                      <Settings className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
 
-              {/* Quick Stats */}
-              <div className="flex gap-6 mt-4">
-                <div className="text-center">
-                  <div className="font-serif font-bold text-xl text-foreground">{mockStats.followers}</div>
-                  <div className="text-xs text-muted-foreground">Kuzatuvchilar</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-serif font-bold text-xl text-foreground">{mockStats.following}</div>
-                  <div className="text-xs text-muted-foreground">Kuzatilayotganlar</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-serif font-bold text-xl text-foreground">{mockStats.achievements}</div>
-                  <div className="text-xs text-muted-foreground">Yutuqlar</div>
+                <p className="text-white/80 mt-3 max-w-lg">{athlete.bio || "Professional sportchi o'zbekiston milliy terma jamoasining a'zosi."}</p>
+
+                {/* Quick Stats — glass pill cards instead of bare numbers */}
+                <div className="flex flex-wrap gap-3 mt-5">
+                  <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
+                    <Users className="w-4 h-4 text-white" />
+                    <div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{mockStats.followers}</div>
+                      <div className="text-[11px] text-white/60">Kuzatuvchilar</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
+                    <UserCheck className="w-4 h-4 text-white" />
+                    <div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{mockStats.following}</div>
+                      <div className="text-[11px] text-white/60">Kuzatilayotganlar</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
+                    <Trophy className="w-4 h-4 text-white" />
+                    <div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{mockStats.achievements}</div>
+                      <div className="text-[11px] text-white/60">Yutuqlar</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
