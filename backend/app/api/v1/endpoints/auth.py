@@ -22,6 +22,7 @@ class RegisterRequest(BaseModel):
     full_name: str
     phone: str | None = None
     role: UserRole = UserRole.OBSERVER
+    sport_type: str | None = None
 
 
 class UserResponse(BaseModel):
@@ -106,6 +107,7 @@ async def register(
             full_name=user_data.full_name,
             phone=user_data.phone,
             role=user_data.role,
+            sport_type=user_data.sport_type,
             is_active=True,
             is_verified=False,
             is_superuser=False

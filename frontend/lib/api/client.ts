@@ -72,6 +72,32 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   }
 }
 
+// Variant of fetchApi for multipart/form-data uploads (avatar, verification
+// document, gallery photos). Deliberately does NOT set Content-Type - the
+// browser must set it itself (multipart/form-data; boundary=...), otherwise
+// the request body cannot be parsed by the server.
+export async function fetchApiUpload(endpoint: string, formData: FormData, token: string, method: string = 'POST') {
+  const url = `${API_URL}${endpoint}`;
+  const response = await fetch(url, {
+    method,
+    body: formData,
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.detail || errorMessage;
+    } catch {
+      // fall back to default error message
+    }
+    throw new Error(String(errorMessage));
+  }
+
+  return response.json();
+}
+
 export const newsApi = {
   /**
    * Get all news articles with pagination
@@ -159,12 +185,31 @@ export const usersApi = {
   /**
    * Update current user profile (requires authentication)
    */
-  updateMe: (data: any, token: string) => 
+  updateMe: (data: any, token: string) =>
     fetchApi('/users/me', {
       method: 'PUT',
       body: JSON.stringify(data),
       headers: { 'Authorization': `Bearer ${token}` }
     }),
+
+  /**
+   * Upload/replace the current user's avatar (requires authentication)
+   */
+  uploadAvatar: (file: File, token: string) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return fetchApiUpload('/users/me/avatar', formData, token);
+  },
+
+  /**
+   * Upload a passport/ID photo to request profile verification
+   * (athletes/trainers only, requires authentication)
+   */
+  uploadVerificationDocument: (file: File, token: string) => {
+    const formData = new FormData();
+    formData.append('document', file);
+    return fetchApiUpload('/users/me/verification-document', formData, token);
+  },
 };
 
 export const merchApi = {
@@ -417,6 +462,57 @@ export const educationApi = {
    */
   delete: (id: number, token: string) => 
     fetchApi(`/education/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }),
+};
+
+export const achievementsApi = {
+  /**
+   * List a user's achievements (public, no auth needed)
+   */
+  getByUser: (userId: number) => fetchApi(`/achievements/?user_id=${userId}`),
+
+  /**
+   * Add an achievement to the current user's own profile (requires authentication)
+   */
+  create: (data: { title: string; year?: string; icon_type?: string }, token: string) =>
+    fetchApi('/achievements/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Authorization': `Bearer ${token}` }
+    }),
+
+  /**
+   * Delete one of the current user's own achievements (requires authentication)
+   */
+  delete: (achievementId: number, token: string) =>
+    fetchApi(`/achievements/${achievementId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }),
+};
+
+export const galleryApi = {
+  /**
+   * List a user's gallery photos (public, no auth needed)
+   */
+  getByUser: (userId: number) => fetchApi(`/gallery/?user_id=${userId}`),
+
+  /**
+   * Upload a photo to the current user's own gallery (requires authentication)
+   */
+  upload: (file: File, token: string) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    return fetchApiUpload('/gallery/', formData, token);
+  },
+
+  /**
+   * Delete one of the current user's own gallery photos (requires authentication)
+   */
+  delete: (photoId: number, token: string) =>
+    fetchApi(`/gallery/${photoId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     }),

@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
-from app.models.user import UserRole
+from app.models.user import UserRole, VerificationStatus
 
 
 class UserBase(BaseModel):
@@ -39,12 +39,19 @@ class UserUpdate(BaseModel):
     is_superuser: Optional[bool] = None
 
 
+class VerificationUpdate(BaseModel):
+    """Superuser action to approve/reject a pending verification request"""
+    status: VerificationStatus = Field(..., description="Must be 'verified' or 'rejected'")
+
+
 class UserResponse(UserBase):
     """Schema for user response"""
     id: int
     avatar_url: Optional[str] = None
     is_active: bool
     is_verified: bool
+    verification_status: VerificationStatus
+    passport_url: Optional[str] = None
     is_subscribed: bool
     is_superuser: bool  # Added to show superuser status
     views_count: int

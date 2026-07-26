@@ -8,7 +8,9 @@ from . import (
     ai_chat,
     job_vacancy,
     education,
-    transaction
+    transaction,
+    achievement,
+    gallery_photo
 )
 
 __all__ = [
@@ -21,5 +23,7 @@ __all__ = [
     "ai_chat",
     "job_vacancy",
     "education",
-    "transaction"
+    "transaction",
+    "achievement",
+    "gallery_photo"
 ]
