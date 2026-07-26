@@ -117,6 +117,11 @@ async def register(
 
         return new_user
 
+    except HTTPException:
+        # Re-raise HTTPExceptions we raised ourselves above (e.g. the 400 for
+        # an existing email) so they aren't caught and rewrapped as 500 by
+        # the generic Exception handler below.
+        raise
     except IntegrityError as e:
         await db.rollback()
         if "users_email_key" in str(e):
