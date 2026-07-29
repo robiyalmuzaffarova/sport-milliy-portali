@@ -121,8 +121,8 @@ export const newsApi = {
   /**
    * Get current user's news articles (requires authentication)
    */
-  getMyArticles: (skip = 0, limit = 10, token: string) => 
-    fetchApi(`/news/my/articles/?skip=${skip}&limit=${limit}`, {
+  getMyArticles: (skip = 0, limit = 10, token: string) =>
+    fetchApi(`/news/my/articles?skip=${skip}&limit=${limit}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     }),
 
@@ -160,14 +160,14 @@ export const usersApi = {
   /**
    * Get list of athletes
    */
-  getAthletes: (skip = 0, limit = 10) => 
-    fetchApi(`/users?role=athlete&skip=${skip}&limit=${limit}`),
+  getAthletes: (skip = 0, limit = 10) =>
+    fetchApi(`/users/?role=athlete&skip=${skip}&limit=${limit}`),
 
   /**
    * Get list of trainers
    */
-  getTrainers: (skip = 0, limit = 10) => 
-    fetchApi(`/users?role=trainer&skip=${skip}&limit=${limit}`),
+  getTrainers: (skip = 0, limit = 10) =>
+    fetchApi(`/users/?role=trainer&skip=${skip}&limit=${limit}`),
 
   /**
    * Get user by ID
@@ -232,7 +232,7 @@ export const merchApi = {
   /**
    * Get single merchandise item by ID
    */
-  getById: (id: string | number) => fetchApi(`/merches/${id}/`),
+  getById: (id: string | number) => fetchApi(`/merches/${id}`),
 
   /**
    * Get current user's merchandise (requires authentication)
@@ -245,8 +245,8 @@ export const merchApi = {
   /**
    * Create new merchandise (requires authentication)
    */
-  create: (data: any, token: string) => 
-    fetchApi('/merches', {
+  create: (data: any, token: string) =>
+    fetchApi('/merches/', {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Authorization': `Bearer ${token}` }
@@ -350,12 +350,12 @@ export const jobVacanciesApi = {
     return fetchApi(endpoint);
   },
 
-  getById: (id: string | number) => fetchApi(`/job-vacancies/${id}/`),
+  getById: (id: string | number) => fetchApi(`/job-vacancies/${id}`),
 };
 
 export const favoritesApi = {
-  getMyFavorites: (token: string, skip = 0, limit = 20) => 
-    fetchApi(`/favorites?skip=${skip}&limit=${limit}`, {
+  getMyFavorites: (token: string, skip = 0, limit = 20) =>
+    fetchApi(`/favorites/?skip=${skip}&limit=${limit}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     }),
 
@@ -374,13 +374,13 @@ export const favoritesApi = {
 };
 
 export const cartApi = {
-  getMyCart: (token: string) => 
-    fetchApi('/cart', {
+  getMyCart: (token: string) =>
+    fetchApi('/cart/', {
       headers: { 'Authorization': `Bearer ${token}` }
     }),
 
-  addToCart: (merchId: number, quantity: number, token: string) => 
-    fetchApi('/cart', {
+  addToCart: (merchId: number, quantity: number, token: string) =>
+    fetchApi('/cart/', {
       method: 'POST',
       body: JSON.stringify({ merch_id: merchId, quantity }),
       headers: { 'Authorization': `Bearer ${token}` }
@@ -435,13 +435,13 @@ export const educationApi = {
   /**
    * Get single education institution by ID
    */
-  getById: (id: string | number) => fetchApi(`/education/${id}/`),
+  getById: (id: string | number) => fetchApi(`/education/${id}`),
 
   /**
    * Create new education institution (requires authentication and admin permissions)
    */
-  create: (data: any, token: string) => 
-    fetchApi('/education', {
+  create: (data: any, token: string) =>
+    fetchApi('/education/', {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Authorization': `Bearer ${token}` }

@@ -176,7 +176,7 @@ function MerchesContent() {
     if (!token) return
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/favorites`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/favorites/`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       )
       const data = await res.json()
