@@ -11,7 +11,8 @@ from app.api.v1.endpoints import (
     course,
     ai_buddy,
     achievements,
-    gallery
+    gallery,
+    follows
 )
 
 api_router = APIRouter()
@@ -35,3 +36,4 @@ api_router.include_router(ai_buddy.router, prefix="/ai-buddy", tags=["AI Buddy"]
 api_router.include_router(course.router, prefix="/courses", tags=["Courses"])
 api_router.include_router(achievements.router, prefix="/achievements", tags=["Achievements"])
 api_router.include_router(gallery.router, prefix="/gallery", tags=["Gallery"])
+api_router.include_router(follows.router, prefix="/follows", tags=["Follows"])

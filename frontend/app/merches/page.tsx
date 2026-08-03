@@ -176,7 +176,7 @@ function MerchesContent() {
     if (!token) return
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/favorites/`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/favorites/`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       )
       const data = await res.json()
@@ -447,7 +447,7 @@ function MerchesContent() {
                             }
                             try {
                               const res = await fetch(
-                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/favorites/toggle/${item.id}`,
+                                `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/favorites/toggle/${item.id}`,
                                 {
                                   method: 'POST',
                                   headers: { 'Authorization': `Bearer ${token}` }

@@ -10,7 +10,8 @@ from . import (
     education,
     transaction,
     achievement,
-    gallery_photo
+    gallery_photo,
+    follow
 )
 
 __all__ = [
@@ -25,5 +26,6 @@ __all__ = [
     "education",
     "transaction",
     "achievement",
-    "gallery_photo"
+    "gallery_photo",
+    "follow"
 ]

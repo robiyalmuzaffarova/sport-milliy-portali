@@ -202,6 +202,24 @@ export const usersApi = {
   },
 
   /**
+   * Upload/replace the current user's cover/banner photo (requires authentication)
+   */
+  uploadCover: (file: File, token: string) => {
+    const formData = new FormData();
+    formData.append('cover', file);
+    return fetchApiUpload('/users/me/cover', formData, token);
+  },
+
+  /**
+   * Permanently delete the current user's own account (requires authentication)
+   */
+  deleteMe: (token: string) =>
+    fetchApi('/users/me', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }),
+
+  /**
    * Upload a passport/ID photo to request profile verification
    * (athletes/trainers only, requires authentication)
    */
@@ -210,6 +228,25 @@ export const usersApi = {
     formData.append('document', file);
     return fetchApiUpload('/users/me/verification-document', formData, token);
   },
+};
+
+export const followApi = {
+  /**
+   * Follow/unfollow toggle for the given user (requires authentication)
+   */
+  toggle: (userId: number, token: string) =>
+    fetchApi(`/follows/toggle/${userId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }),
+
+  /**
+   * Whether the current user already follows the given user (requires authentication)
+   */
+  getStatus: (userId: number, token: string) =>
+    fetchApi(`/follows/status/${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }),
 };
 
 export const merchApi = {

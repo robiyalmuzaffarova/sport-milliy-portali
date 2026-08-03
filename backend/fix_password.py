@@ -36,7 +36,7 @@ async def fix_password():
         print(f"\nLogin credentials:")
         print(f"  Email:    robiyamuzaffarova03@gmail.com")
         print(f"  Password: Sonic1303")
-        print(f"\nTry logging in at: http://localhost:8000/docs/login\n")
+        print(f"\nTry logging in at: http://127.0.0.1:8000/docs/login\n")
 
 if __name__ == "__main__":
     asyncio.run(fix_password())

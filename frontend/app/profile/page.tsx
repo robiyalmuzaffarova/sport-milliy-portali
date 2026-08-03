@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import Image from "next/image"
@@ -8,7 +8,7 @@ import Link from "next/link"
 import {
   Mail, Phone, MapPin, Calendar, Award, Trophy, Star, Settings, Edit, Camera,
   ChevronRight, Upload, Clock, CheckCircle2, XCircle, PlayCircle, AlertTriangle,
-  Filter, Eye, ShieldCheck, Users, UserCheck, Medal,
+  Filter, Eye, ShieldCheck, Users, UserCheck, Medal, Loader2,
 } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
@@ -16,6 +16,8 @@ import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { usersApi } from "@/lib/api/client"
+import { EditProfileModal } from "@/components/features/edit-profile-modal"
+import { SettingsModal } from "@/components/features/settings-modal"
 import {
   coursesApi,
   canUploadCourses,
@@ -274,6 +276,16 @@ function ProfileContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
+  // Edit / Settings modals
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+
+  // Avatar / cover upload
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [isUploadingCover, setIsUploadingCover] = useState(false)
+
   // My Courses (trainer) state
   const [myCourses, setMyCourses] = useState<Course[]>([])
   const [myCoursesLoading, setMyCoursesLoading] = useState(false)
@@ -312,6 +324,42 @@ function ProfileContent() {
     }
     fetchCurrentUser()
   }, [router])
+
+  const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    const token = localStorage.getItem("access_token")
+    if (!token) return
+
+    setIsUploadingAvatar(true)
+    try {
+      const updated = await usersApi.uploadAvatar(file, token)
+      setCurrentUser(updated)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Rasm yuklashda xatolik yuz berdi")
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
+  const handleCoverChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    const token = localStorage.getItem("access_token")
+    if (!token) return
+
+    setIsUploadingCover(true)
+    try {
+      const updated = await usersApi.uploadCover(file, token)
+      setCurrentUser(updated)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Muqova rasmini yuklashda xatolik yuz berdi")
+    } finally {
+      setIsUploadingCover(false)
+    }
+  }
 
   // Lazy-load "My Courses" the first time that tab is opened
   const loadMyCourses = useCallback(async () => {
@@ -445,7 +493,7 @@ function ProfileContent() {
       {currentUser.cover_url ? (
         <>
           <motion.div className="fixed inset-0 -z-20" style={{ filter: bgFilter }}>
-            <img src={currentUser.cover_url} alt="" className="w-full h-full object-cover object-[50%_30%]" />
+            <img src={getMediaUrl(currentUser.cover_url)} alt="" className="w-full h-full object-cover object-[50%_30%]" />
           </motion.div>
           <div className="fixed inset-0 -z-20 bg-primary/55" />
           <motion.div className="fixed inset-0 -z-20 bg-primary" style={{ opacity: overlayOpacity }} />
@@ -469,23 +517,45 @@ function ProfileContent() {
             transition={{ duration: 0.6 }}
             className="ios-glass rounded-3xl p-6 md:p-8 relative"
           >
-            <button className="absolute top-5 right-5 p-2.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white hover:bg-white/25 transition-colors">
-              <Camera className="w-4 h-4" />
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleCoverChange}
+            />
+            <button
+              onClick={() => coverInputRef.current?.click()}
+              disabled={isUploadingCover}
+              className="absolute top-5 right-5 p-2.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white hover:bg-white/25 transition-colors disabled:opacity-60"
+            >
+              {isUploadingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
             </button>
 
             <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
               {/* Avatar */}
               <div className="relative">
                 <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden ring-4 ring-white/25 shadow-2xl shadow-black/40">
-                  <Image src={currentUser.avatar_url || "/placeholder.svg"} alt={currentUser.full_name} fill className="object-cover" />
+                  <Image src={currentUser.avatar_url ? getMediaUrl(currentUser.avatar_url) : "/placeholder.svg"} alt={currentUser.full_name} fill className="object-cover" />
                 </div>
                 {currentUser.is_verified && (
                   <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-sport flex items-center justify-center ring-4 ring-white/20 shadow-lg">
                     <UserCheck className="w-4 h-4 text-white" />
                   </div>
                 )}
-                <button className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors">
-                  <Camera className="w-3.5 h-3.5" />
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors disabled:opacity-60"
+                >
+                  {isUploadingAvatar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
                 </button>
               </div>
 
@@ -500,7 +570,12 @@ function ProfileContent() {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="rounded-xl bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
+                    <Button
+                      onClick={() => setShowSettingsModal(true)}
+                      variant="outline"
+                      size="icon"
+                      className="rounded-xl bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+                    >
                       <Settings className="w-5 h-5" />
                     </Button>
                     {canUploadCourses(currentUser.role) && (
@@ -513,7 +588,10 @@ function ProfileContent() {
                         Kurs yuklash
                       </Button>
                     )}
-                    <Button className="bg-sport hover:bg-sport/90 text-white rounded-xl gap-2 shadow-lg shadow-sport/30">
+                    <Button
+                      onClick={() => setShowEditModal(true)}
+                      className="bg-sport hover:bg-sport/90 text-white rounded-xl gap-2 shadow-lg shadow-sport/30"
+                    >
                       <Edit className="w-4 h-4" />
                       Tahrirlash
                     </Button>
@@ -795,6 +873,14 @@ function ProfileContent() {
           )}
         </Tabs>
       </div>
+
+      <EditProfileModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        currentUser={currentUser}
+        onSaved={(updated) => setCurrentUser(updated)}
+      />
+      <SettingsModal open={showSettingsModal} onOpenChange={setShowSettingsModal} />
 
       <Footer />
     </div>

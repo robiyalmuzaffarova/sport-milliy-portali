@@ -4,13 +4,14 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion, useScroll, useTransform } from "framer-motion"
 import Image from "next/image"
-import { Mail, Phone, MapPin, Calendar, Award, Trophy, Star, Settings, Edit, Camera, ChevronRight, Loader2, ArrowLeft, UserCheck, Medal, Users } from "lucide-react"
+import { Mail, Phone, MapPin, Calendar, Award, Trophy, Star, Edit, Camera, ChevronRight, Loader2, ArrowLeft, UserCheck, Medal, Users } from "lucide-react"
 import { LanguageProvider, useLanguage } from "@/lib/i18n/language-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { usersApi } from "@/lib/api/client"
+import { usersApi, followApi } from "@/lib/api/client"
+import { FollowButton } from "@/components/features/follow-button"
 
 // Fixed backdrop photo for this page — deliberately different from the news page's photo
 const HERO_BG_IMAGE = "/runners.jpg"
@@ -25,6 +26,12 @@ function AthleteProfileContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
+
+  // Follow state — viewerId is the logged-in user's own id (null if not logged in).
+  // The follow button only shows once we know the viewer and it isn't their own profile.
+  const [viewerId, setViewerId] = useState<number | null>(null)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followersCount, setFollowersCount] = useState(0)
 
   // As the page scrolls, the fixed backdrop photo goes from sharp (header) to softly blurred
   // and darkened — same treatment as the news/trainers pages.
@@ -42,8 +49,25 @@ function AthleteProfileContent() {
         console.log("🔄 [ATHLETE PROFILE] Fetching athlete ID:", athleteId)
         const data = await usersApi.getById(athleteId)
         console.log("✅ [ATHLETE PROFILE] API Response:", data)
-        
+
         setAthlete(data)
+        setFollowersCount(data.followers_count || 0)
+
+        // If logged in, find out who's viewing (to hide the button on your own
+        // profile) and whether they already follow this athlete.
+        const token = localStorage.getItem("access_token")
+        if (token) {
+          try {
+            const me = await usersApi.getMe(token)
+            setViewerId(me.id)
+            if (me.id !== data.id) {
+              const followStatus = await followApi.getStatus(data.id, token)
+              setIsFollowing(followStatus.is_following)
+            }
+          } catch (viewerErr) {
+            console.error("Failed to load viewer/follow status:", viewerErr)
+          }
+        }
       } catch (err: any) {
         console.error("❌ [ATHLETE PROFILE] Failed to load athlete:", err)
         setError(err.message || "Sportchini yuklashda xatolik yuz berdi")
@@ -118,11 +142,8 @@ function AthleteProfileContent() {
     year: 'numeric' 
   })
 
-  const mockStats = {
-    followers: 2450 + Math.floor(Math.random() * 1000),
-    following: 156 + Math.floor(Math.random() * 100),
-    achievements: athlete.achievements ? athlete.achievements.split(',').length : 0,
-  }
+  const achievementsCount = athlete.achievements ? athlete.achievements.split(',').length : 0
+  const isOwnProfile = viewerId !== null && viewerId === athlete.id
 
   const mockAchievements = [
     { id: "1", title: "Reyting etuvchi sportchi", year: new Date().getFullYear().toString(), icon: Trophy },
@@ -194,11 +215,16 @@ function AthleteProfileContent() {
                       {athlete.sport_type || "Sport"}
                     </span>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="rounded-xl bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
-                      <Settings className="w-5 h-5" />
-                    </Button>
-                  </div>
+                  {!isOwnProfile && viewerId !== null && (
+                    <div className="flex gap-2">
+                      <FollowButton
+                        userId={athlete.id}
+                        initialIsFollowing={isFollowing}
+                        initialFollowersCount={followersCount}
+                        onFollowersCountChange={setFollowersCount}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-white/80 mt-3 max-w-lg">{athlete.bio || "Professional sportchi o'zbekiston milliy terma jamoasining a'zosi."}</p>
@@ -208,21 +234,21 @@ function AthleteProfileContent() {
                   <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
                     <Users className="w-4 h-4 text-white" />
                     <div>
-                      <div className="font-serif font-bold text-base text-white leading-none">{mockStats.followers}</div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{followersCount}</div>
                       <div className="text-[11px] text-white/60">Kuzatuvchilar</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
                     <UserCheck className="w-4 h-4 text-white" />
                     <div>
-                      <div className="font-serif font-bold text-base text-white leading-none">{mockStats.following}</div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{athlete.following_count || 0}</div>
                       <div className="text-[11px] text-white/60">Kuzatilayotganlar</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl px-4 py-2.5">
                     <Trophy className="w-4 h-4 text-white" />
                     <div>
-                      <div className="font-serif font-bold text-base text-white leading-none">{mockStats.achievements}</div>
+                      <div className="font-serif font-bold text-base text-white leading-none">{achievementsCount}</div>
                       <div className="text-[11px] text-white/60">Yutuqlar</div>
                     </div>
                   </div>

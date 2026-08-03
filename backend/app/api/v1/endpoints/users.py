@@ -6,6 +6,7 @@ import bcrypt
 
 from app.db.session import get_db
 from app.models.user import User, UserRole, VerificationStatus
+from app.models.follow import Follow
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse, VerificationUpdate
 from app.core.security import get_current_active_user
 from app.core.permissions import (
@@ -19,13 +20,32 @@ from app.api.v1.endpoints.course import _save_upload, ALLOWED_IMAGE_EXTENSIONS
 router = APIRouter()
 
 MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
+MAX_COVER_SIZE_BYTES = 8 * 1024 * 1024  # 8MB
 MAX_VERIFICATION_DOC_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
 
 
+async def _attach_follow_counts(db: AsyncSession, user: User) -> User:
+    """
+    followers_count / following_count aren't stored columns — they're derived
+    from the follows table. Attached as plain attributes on the ORM instance
+    right before returning, so UserResponse (from_attributes) picks them up.
+    """
+    user.followers_count = await db.scalar(
+        select(func.count()).select_from(Follow).where(Follow.followed_id == user.id)
+    )
+    user.following_count = await db.scalar(
+        select(func.count()).select_from(Follow).where(Follow.follower_id == user.id)
+    )
+    return user
+
+
 @router.get("/me", response_model=UserResponse)
-async def read_user_me(current_user: User = Depends(get_current_active_user)):
+async def read_user_me(
+        current_user: User = Depends(get_current_active_user),
+        db: AsyncSession = Depends(get_db),
+):
     """Get current authenticated user's profile"""
-    return current_user
+    return await _attach_follow_counts(db, current_user)
 
 
 @router.put("/me", response_model=UserResponse)
@@ -49,7 +69,7 @@ async def update_user_me(
 
     await db.commit()
     await db.refresh(current_user)
-    return current_user
+    return await _attach_follow_counts(db, current_user)
 
 
 @router.post("/me/avatar", response_model=UserResponse)
@@ -66,7 +86,42 @@ async def upload_avatar(
     current_user.avatar_url = avatar_url
     await db.commit()
     await db.refresh(current_user)
-    return current_user
+    return await _attach_follow_counts(db, current_user)
+
+
+@router.post("/me/cover", response_model=UserResponse)
+async def upload_cover(
+        cover: UploadFile = File(...),
+        current_user: User = Depends(get_current_active_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """Upload/replace the current user's cover/banner photo (profile page backdrop)."""
+    cover_url = _save_upload(cover, "covers", ALLOWED_IMAGE_EXTENSIONS, MAX_COVER_SIZE_BYTES)
+    current_user.cover_url = cover_url
+    await db.commit()
+    await db.refresh(current_user)
+    return await _attach_follow_counts(db, current_user)
+
+
+@router.delete("/me")
+async def delete_own_account(
+        current_user: User = Depends(get_current_active_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    Self-service account deletion, from the profile Settings panel.
+    Returns 200 + a JSON body (not 204) because the frontend's shared fetchApi
+    helper unconditionally calls response.json() on success, which throws on
+    a genuinely empty 204 body.
+    """
+    if current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Superuser accounts can't be self-deleted; ask another admin.",
+        )
+    await db.delete(current_user)
+    await db.commit()
+    return {"message": "Account deleted"}
 
 
 @router.post("/me/verification-document", response_model=UserResponse)
@@ -164,7 +219,7 @@ async def get_user_detail(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+    return await _attach_follow_counts(db, user)
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_superuser())])

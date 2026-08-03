@@ -33,15 +33,15 @@ class Settings(BaseSettings):
     DB_ECHO: bool = False
     
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
-    REDIS_HOST: str = "localhost"
+    REDIS_URL: str = "redis://127.0.0.1:6379/0"
+    REDIS_HOST: str = "127.0.0.1"
     REDIS_PORT: int = 6379
 
     # Frontend
-    FRONTEND_URL: str = "http://localhost:3000"
-    
+    FRONTEND_URL: str = "http://127.0.0.1:3000"
+
     # RabbitMQ
-    RABBITMQ_URL: str = "amqp://sportuser:sportpass@localhost:5672/"
+    RABBITMQ_URL: str = "amqp://sportuser:sportpass@127.0.0.1:5672/"
     
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(32)
@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     CLICK_MERCHANT_ID: Optional[str] = None
     CLICK_SERVICE_ID: Optional[str] = None
     CLICK_SECRET_KEY: Optional[str] = None
-    CLICK_RETURN_URL: str = "http://localhost:3000/payment/callback"
+    CLICK_RETURN_URL: str = "http://127.0.0.1:3000/payment/callback"
     
     PAYME_MERCHANT_ID: Optional[str] = None
     PAYME_SECRET_KEY: Optional[str] = None

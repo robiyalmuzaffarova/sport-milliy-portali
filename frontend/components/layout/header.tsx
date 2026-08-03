@@ -47,7 +47,7 @@ export function Header() {
 
     // Fetch real cart count
     if (token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/cart/`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/cart/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
         .then(r => r.json())
