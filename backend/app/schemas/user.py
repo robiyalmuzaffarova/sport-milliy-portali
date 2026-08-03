@@ -48,6 +48,7 @@ class UserResponse(UserBase):
     """Schema for user response"""
     id: int
     avatar_url: Optional[str] = None
+    cover_url: Optional[str] = None
     is_active: bool
     is_verified: bool
     verification_status: VerificationStatus
@@ -57,6 +58,10 @@ class UserResponse(UserBase):
     views_count: int
     donations_received: int
     rating: float = 4.5  # User rating (0-5 scale)
+    # Populated by endpoints that attach them (read_user_me, get_user_detail);
+    # default 0 elsewhere so the field is never missing from a response.
+    followers_count: int = 0
+    following_count: int = 0
     created_at: datetime
     updated_at: datetime
 

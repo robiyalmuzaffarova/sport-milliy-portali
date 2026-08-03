@@ -519,10 +519,10 @@ async def general_exception_handler(request: Request, exc: Exception):
 async def startup_event():
     print(f"🚀 Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     print("=" * 70)
-    print(f"📊 Admin Panel:        http://localhost:8000/admin")
-    print(f"📖 API Documentation:  http://localhost:8000/docs")
+    print(f"📊 Admin Panel:        http://127.0.0.1:8000/admin")
+    print(f"📖 API Documentation:  http://127.0.0.1:8000/docs")
     print(f"   ⚠️  WARNING: SUPERUSER ONLY - Others will be DENIED")
-    print(f"🔐 Docs Login:         http://localhost:8000/docs/login")
+    print(f"🔐 Docs Login:         http://127.0.0.1:8000/docs/login")
     print(f"🔑 API Auth:           POST /api/v1/auth/login")
     print("=" * 70)
     print("✅ Application started successfully")

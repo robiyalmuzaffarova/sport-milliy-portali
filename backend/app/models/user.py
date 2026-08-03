@@ -38,6 +38,7 @@ class User(BaseModel):
     full_name = Column(String(255), nullable=False)
     phone = Column(String(20), nullable=True)
     avatar_url = Column(String(500), nullable=True)
+    cover_url = Column(String(500), nullable=True)
     bio = Column(Text, nullable=True)
 
     # Role and permissions
