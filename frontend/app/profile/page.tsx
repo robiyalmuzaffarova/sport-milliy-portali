@@ -398,13 +398,13 @@ function ProfileContent() {
     if (activeTab === "mycourses" && !myCoursesLoaded) {
       loadMyCourses()
     }
-    if (activeTab === "moderation" && currentUser?.is_superuser) {
+    if (activeTab === "moderation" && (currentUser?.is_superuser || currentUser?.role === "admin")) {
       loadModerationCourses(moderationFilter)
     }
   }, [activeTab, currentUser]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (activeTab === "moderation" && currentUser?.is_superuser) {
+    if (activeTab === "moderation" && (currentUser?.is_superuser || currentUser?.role === "admin")) {
       loadModerationCourses(moderationFilter)
     }
   }, [moderationFilter]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -476,7 +476,7 @@ function ProfileContent() {
   }
 
   const showMyCoursesTab = canUploadCourses(currentUser.role)
-  const showModerationTab = !!currentUser.is_superuser
+  const showModerationTab = !!currentUser.is_superuser || currentUser.role === "admin"
 
   const moderationFilters: { value: AdminStatusFilter; label: string }[] = [
     { value: "pending",  label: "Kutilmoqda" },

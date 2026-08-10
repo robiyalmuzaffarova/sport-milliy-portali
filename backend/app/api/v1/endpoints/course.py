@@ -24,7 +24,7 @@ from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
 from app.core.security import get_current_active_user
-from app.core.permissions import require_superuser
+from app.core.permissions import require_admin_or_superuser
 from app.models.course import Course, CourseStatus, SportType
 from app.models.user import User, UserRole
 from app.schemas.course import (
@@ -429,7 +429,7 @@ async def list_pending_courses(
     skip:  int          = Query(0, ge=0),
     limit: int          = Query(20, ge=1, le=100),
     db:    AsyncSession = Depends(get_db),
-    _:     User         = Depends(require_superuser()),
+    _:     User         = Depends(require_admin_or_superuser()),
 ):
     """Admin view — all courses awaiting review."""
     query = (
@@ -455,7 +455,7 @@ async def list_all_courses_admin(
     status_:    Optional[CourseStatus] = Query(None, alias="status"),
     sport_type: Optional[SportType]  = Query(None),
     db:         AsyncSession         = Depends(get_db),
-    _:          User                 = Depends(require_superuser()),
+    _:          User                 = Depends(require_admin_or_superuser()),
 ):
     """Admin view — all courses regardless of status, with optional filters."""
     query = select(Course).options(selectinload(Course.uploaded_by))
@@ -480,7 +480,7 @@ async def review_course(
     course_id:    uuid.UUID,
     payload:      CourseReview,
     db:           AsyncSession = Depends(get_db),
-    current_user: User         = Depends(require_superuser()),
+    current_user: User         = Depends(require_admin_or_superuser()),
 ):
     """
     Admin approves or rejects a pending course.
