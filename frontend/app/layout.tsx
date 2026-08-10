@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
 const inter = Inter({
@@ -50,7 +49,6 @@ export default function RootLayout({
     <html lang="uz" className={inter.variable} suppressHydrationWarning>
       <body className="font-sans antialiased min-h-screen" suppressHydrationWarning>
         {children}
-        <Analytics />
       </body>
     </html>
   )

@@ -12,11 +12,14 @@ class RateLimiter:
         
         # Initial check to see if Redis is up
         try:
-            # Note: We don't await in __init__, we just setup the client
-            self.redis_client = aioredis.Redis(
-                host=settings.REDIS_HOST,
-                port=settings.REDIS_PORT,
-                db=0,
+            # Note: We don't await in __init__, we just setup the client.
+            # Built from REDIS_URL (not REDIS_HOST/REDIS_PORT) because that's
+            # the setting actually configured with the right hostname and
+            # password in every environment (see translation.py for the same
+            # pattern) - the host/port settings are unused defaults nothing
+            # sets, which silently pointed this at the wrong Redis instance.
+            self.redis_client = aioredis.Redis.from_url(
+                settings.REDIS_URL,
                 decode_responses=True
             )
             self.redis_available = True
