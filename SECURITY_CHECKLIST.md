@@ -140,7 +140,7 @@
 - [ ] **SSL Configuration** - A+ rating on SSL Labs
 
 ### Documentation
-- [ ] **Security README** - documented in docs/SECURITY.md
+- [ ] **Security README** - security posture documented
 - [ ] **Incident Response** - Procedure documented
 - [ ] **Access Control** - Documented and enforced
 - [ ] **Audit Trail** - Available for review

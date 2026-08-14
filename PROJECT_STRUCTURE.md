@@ -98,23 +98,9 @@ sport-milliy-portali/
 │   │
 │   └── 📁 public/                    # Static files
 │
-├── 📁 docker/                        # Docker configs
-│   └── 📁 nginx/
-│       └── 📄 nginx.conf             # Nginx config
-│
-├── 📁 k8s/                           # Kubernetes
-│   ├── 📄 deployment.yaml            # Deployments
-│   ├── 📄 service.yaml               # Services
-│   └── 📄 ingress.yaml               # Ingress
-│
-├── 📁 docs/                          # Documentation
-│   ├── 📄 API.md                     # API docs
-│   ├── 📄 SECURITY.md                # Security audit
-│   └── 📄 DEPLOYMENT.md              # Deploy guide
-│
-└── 📁 .github/                       # GitHub config
-    └── 📁 workflows/
-        └── 📄 ci-cd.yaml             # CI/CD pipeline
+└── 📁 docker/                        # Docker configs
+    └── 📁 nginx/
+        └── 📄 nginx.conf             # Nginx config
 ```
 
 ## 🛠️ Tech Stack
@@ -242,12 +228,7 @@ npm test
 docker-compose up -d
 ```
 
-### Kubernetes
-```bash
-kubectl apply -f k8s/
-```
-
-See docs/DEPLOYMENT.md for details.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for details.
 
 ---
 

@@ -22,7 +22,6 @@ Sport Milliy Portali enables:
 - **Payments**: Click & Payme integration
 - **Translation**: Automatic multilingual support (Uzbek, English, Russian)
 - **Containerization**: Docker + Docker Compose
-- **Orchestration**: Kubernetes ready
 
 ## 📋 Prerequisites
 
@@ -104,20 +103,15 @@ sport-milliy-portali/
 │   │   ├── core/              # Core functionality
 │   │   ├── models/            # Database models
 │   │   ├── schemas/           # Pydantic schemas
-│   │   ├── services/          # Business logic
 │   │   └── workers/           # Celery tasks
-│   ├── alembic/               # Database migrations
-│   └── tests/                 # Backend tests
+│   └── alembic/               # Database migrations
 ├── frontend/                   # Next.js frontend
-│   ├── src/
-│   │   ├── app/               # Next.js pages
+│   ├── app/                    # Next.js pages (App Router)
 │   │   ├── components/        # React components
 │   │   ├── lib/               # Utilities
 │   │   └── translations/      # i18n files
 │   └── public/                # Static assets
-├── docker/                     # Docker configs
-├── k8s/                       # Kubernetes manifests
-└── docs/                      # Documentation
+└── docker/                     # Docker configs
 ```
 
 ## 🔧 Configuration
@@ -178,56 +172,21 @@ After starting the backend, visit:
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## 🧪 Testing
-
-### Backend Tests
-
-```bash
-cd backend
-pytest tests/ -v --cov=app
-```
-
-### Frontend Tests
-
-```bash
-cd frontend
-npm test
-npm run test:e2e
-```
-
 ## 🚢 Deployment
 
-### Docker Compose Production
-
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.production.yml up -d
 ```
 
-### Kubernetes
-
-```bash
-# Apply configurations
-kubectl apply -f k8s/
-
-# Check deployment status
-kubectl get pods -n sport-portal
-```
-
-See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment instructions.
+`docker-compose.staging.yml` is the config actually running on the current shared VPS deployment — see the comment at the top of that file for how it differs from `docker-compose.production.yml` (a dedicated-server target).
 
 ## 🔒 Security
 
-- JWT authentication with refresh tokens
-- OAuth2 integration
-- MFA support
-- RBAC (Role-Based Access Control)
-- Argon2 password hashing
-- AES-256 data encryption
-- Rate limiting
-- CSRF protection
-- Content Security Policy (CSP)
-
-See [SECURITY.md](docs/SECURITY.md) for security audit details.
+- JWT authentication (access token, no refresh token)
+- RBAC (Role-Based Access Control) — see `backend/app/core/permissions.py`
+- bcrypt password hashing
+- Rate limiting (Redis-backed, fails open if Redis is unreachable)
+- Security headers (HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy) — set both at the nginx layer and by the backend
 
 ## 🌐 Multilingual Support
 
@@ -264,19 +223,12 @@ Key entities:
 
 ## 📈 Monitoring
 
-- Application logs: `/var/log/sport-portal/`
 - Health check: `http://localhost:8000/health`
-- Metrics: Prometheus + Grafana (optional)
 
 ## 🛠️ Development Tools
 
-- **Code Formatting**: Black, isort (Python) / Prettier (TypeScript)
+- **Code Formatting**: Black, isort (Python)
 - **Linting**: Flake8, mypy (Python) / ESLint (TypeScript)
-- **Pre-commit Hooks**: husky + lint-staged
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 👥 Contributing
 
