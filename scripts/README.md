@@ -140,7 +140,6 @@ docker-compose -f docker-compose.production.yml exec postgres \
 ## Related Documentation
 
 - [DEPLOYMENT.md](../DEPLOYMENT.md) - Complete deployment guide
-- [DEPLOYMENT_READY.md](../DEPLOYMENT_READY.md) - Deployment readiness summary
 - [SECURITY_CHECKLIST.md](../SECURITY_CHECKLIST.md) - Security verification checklist
 - [README.md](../README.md) - Project overview
 

@@ -106,27 +106,6 @@ After setup completes, access:
 
 ---
 
-## 🎨 View the Design Preview
-
-Open the included HTML preview:
-```bash
-# Open in browser
-open PREVIEW.html  # macOS
-xdg-open PREVIEW.html  # Linux
-start PREVIEW.html  # Windows
-
-# Or just double-click PREVIEW.html
-```
-
-This shows the complete design with:
-- ✅ Dark glass morphism theme
-- ✅ All pages (Home, News, Athletes, Trainers, Merch, etc.)
-- ✅ Multilingual support (UZ/EN/RU)
-- ✅ Login & Signup pages
-- ✅ Interactive features
-
----
-
 ## 🛠️ Common Commands
 
 ### Docker Operations
@@ -314,43 +293,17 @@ cp backend/.env backend/.env.production
 
 2. **Build and deploy:**
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.production.yml up -d
 ```
 
-### Deploy to Kubernetes
-
-1. **Create namespace:**
-```bash
-kubectl create namespace sport-portal
-```
-
-2. **Create secrets:**
-```bash
-kubectl create secret generic sport-portal-secrets \
-  --from-literal=database-url='postgresql://user:pass@host/db' \
-  --namespace=sport-portal
-```
-
-3. **Deploy:**
-```bash
-kubectl apply -f k8s/
-```
-
-4. **Check status:**
-```bash
-kubectl get pods -n sport-portal
-kubectl get services -n sport-portal
-```
-
-See `docs/DEPLOYMENT.md` for detailed deployment instructions.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
 
 ---
 
 ## 📝 Next Steps
 
 1. **Explore the API:** http://localhost:8000/docs
-2. **Read documentation:** `docs/API.md`, `docs/SECURITY.md`
-3. **Customize design:** Edit frontend components
+2. **Customize design:** Edit frontend components
 4. **Add features:** Follow the project structure in `PROJECT_STRUCTURE.md`
 5. **Set up payments:** Add Click/Payme credentials
 6. **Configure translation:** Add Google Translate API key
@@ -400,7 +353,6 @@ docker-compose exec backend pip install -r requirements.txt --force-reinstall
 
 - **Issues:** Open an issue on GitHub
 - **Email:** info@sportmilliyportali.uz
-- **Documentation:** Check `docs/` folder
 - **API Docs:** http://localhost:8000/docs
 
 ---

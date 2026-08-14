@@ -113,7 +113,7 @@ docker-compose logs -f backend  # Monitor backend
 ### Core Dependencies
 - **Backend**: FastAPI 0.109+, SQLAlchemy 2.0+, Pydantic 2.0, alembic, celery, redis, bcrypt/argon2
 - **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS 3, Radix UI, TanStack Query (React Query)
-- **Infrastructure**: PostgreSQL 15, Redis 7, RabbitMQ 3, Docker, Kubernetes (k8s manifests in [k8s/](k8s/))
+- **Infrastructure**: PostgreSQL 15, Redis 7, RabbitMQ 3, Docker + Docker Compose
 
 ### External Services
 - **Payments**: Click & Payme integration (config in [backend/app/core/config.py](backend/app/core/config.py))
@@ -156,22 +156,16 @@ docker-compose logs -f backend  # Monitor backend
 All services restart unless explicitly stopped; named `sport-portal-*` for easy identification.
 
 ### Production Deployment
-- Kubernetes manifests in [k8s/](k8s/) (deployment.yaml, service.yaml, ingress.yaml)
-- GitHub Actions CI/CD in [.github/workflows/](github/workflows/)
+- Deployed via `docker-compose.production.yml` (dedicated server) or `docker-compose.staging.yml` (current shared-VPS deployment - see the comment at the top of that file for how it differs)
 - Environment variables for all sensitive config (never hardcode tokens, secrets, URLs)
 
 ## Testing & Quality
 
-- **Pytest** for backend unit & integration tests
+- No automated test suite exists yet (no `backend/tests/`, no frontend test script) - verify changes manually
 - **ESLint** for frontend linting (run `npm run lint`)
-- All tests must pass before merging PRs
-- Use fixtures for test data; mock external services (email, payments, translation APIs)
 
 ## Documentation References
 - **Main README**: [README.md](README.md) - Architecture, tech stack, quick start
-- **API Reference**: [docs/API.md](docs/API.md)
-- **Security Audit**: [docs/SECURITY.md](docs/SECURITY.md)
-- **Deployment Guide**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - **Project Structure**: [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)
 - **Quick Setup**: [QUICKSTART.md](QUICKSTART.md)
 
